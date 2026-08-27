@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — DragonByte</title>
+  <link rel="icon" href="/assets/img/logo-icon.png" />
+  <link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+
+  <!-- Login screen -->
+  <div id="login-screen" class="admin-login-shell">
+    <div class="admin-login-box">
+      <div class="text-center mb-4">
+        <img src="/assets/img/logo-icon.png" alt="DragonByte" style="height:44px; margin:0 auto;" />
+      </div>
+      <h2 class="h3 text-center mb-4" style="color:#fff;">Admin Access</h2>
+      <form id="login-form">
+        <div class="field">
+          <label for="login-username">Username</label>
+          <input id="login-username" required />
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" required />
+        </div>
+        <p id="login-error" class="form-error hidden"></p>
+        <button type="submit" id="login-submit" class="btn btn-primary btn-block mt-2">Sign In</button>
+      </form>
+      <p class="text-xs text-center mt-4" style="color:#64748b;">Set in server/.env — default: admin / admin123</p>
+    </div>
+  </div>
+
+  <!-- Admin shell -->
+  <div id="admin-shell" class="admin-shell hidden">
+    <aside class="admin-sidebar">
+      <div style="padding:24px; border-bottom:1px solid #1e293b;">
+        <div class="flex items-center gap-2">
+          <img src="/assets/img/logo-icon.png" alt="" style="height:30px;" />
+          <span class="logo-word">DragonByte</span>
+        </div>
+      </div>
+      <nav id="admin-nav" style="flex:1; padding:16px; display:flex; flex-direction:column; gap:4px;"></nav>
+      <div style="padding:16px; border-top:1px solid #1e293b;">
+        <button id="logout-btn" class="admin-nav-item" style="color:#64748b;">Sign Out</button>
+      </div>
+    </aside>
+    <main class="admin-main">
+      <div class="mb-4">
+        <h1 id="section-title" class="h2"></h1>
+        <p class="text-sm text-muted mt-1">DragonByte Admin Dashboard</p>
+      </div>
+      <div id="section-content"></div>
+    </main>
+  </div>
+
+  <script src="/assets/js/config.js"></script>
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/admin.js"></script>
+</body>
+</html>

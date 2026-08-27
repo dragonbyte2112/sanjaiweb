@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join — DragonByte</title>
+  <link rel="icon" href="/assets/img/logo-icon.png" />
+  <link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main>
+
+    <div id="join-success" class="hidden" style="min-height:80vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(145deg, #f8fafc, #eff6ff);">
+      <div class="text-center card" style="max-width:480px; padding:48px; box-shadow:0 24px 60px rgba(15,23,42,0.08);">
+        <div style="font-size:3rem; margin-bottom:16px;">🎉</div>
+        <h2 class="h2 mb-3">Application Received!</h2>
+        <p class="text-sm text-muted">Thanks for applying to DragonByte! Our team will review your application and reach out within a few days.</p>
+      </div>
+    </div>
+
+    <div id="join-form-wrap">
+      <section style="padding:80px 0 40px; background:linear-gradient(145deg, #f8fafc, #eff6ff);">
+        <div class="container-sm text-center">
+          <p class="eyebrow">Become a member</p>
+          <h1 class="h1 mb-2">Join DragonByte</h1>
+          <p class="lead">Tell us a bit about yourself and we'll get you set up.</p>
+        </div>
+      </section>
+
+      <section class="section" style="padding-top:40px;">
+        <div class="container-sm">
+          <form id="join-form" class="card">
+            <div class="grid grid-2">
+              <div class="field">
+                <label for="name">Full name *</label>
+                <input id="name" name="name" required />
+              </div>
+              <div class="field">
+                <label for="email">Email *</label>
+                <input id="email" name="email" type="email" required />
+              </div>
+              <div class="field">
+                <label for="username">Preferred username *</label>
+                <input id="username" name="username" required />
+              </div>
+              <div class="field">
+                <label for="experience">Experience level</label>
+                <select id="experience">
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="professional">Professional</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="skills">Skills (comma separated)</label>
+              <input id="skills" name="skills" placeholder="e.g. Python, Web Security, Reverse Engineering" />
+            </div>
+
+            <div class="field">
+              <label>Interests</label>
+              <div id="interests-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:8px; margin-top:6px;"></div>
+            </div>
+
+            <div class="grid grid-2">
+              <div class="field">
+                <label for="github">GitHub (optional)</label>
+                <input id="github" placeholder="https://github.com/yourname" />
+              </div>
+              <div class="field">
+                <label for="linkedin">LinkedIn (optional)</label>
+                <input id="linkedin" placeholder="https://linkedin.com/in/yourname" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="message">Why do you want to join?</label>
+              <textarea id="message" name="message" rows="4"></textarea>
+            </div>
+
+            <p id="join-error" class="form-error hidden"></p>
+            <button type="submit" id="join-submit" class="btn btn-primary btn-block">Submit Application</button>
+          </form>
+        </div>
+      </section>
+    </div>
+
+  </main>
+  <div id="site-footer"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/layout.js"></script>
+  <script>
+    const INTEREST_OPTIONS = ["Web Security", "Cryptography", "Forensics", "OSINT", "Reverse Engineering", "Malware Analysis", "Network Security", "Cloud Security", "Bug Bounty", "CTF Competitions"];
+    const selectedInterests = new Set();
+
+    function renderInterests() {
+      const el = document.getElementById("interests-grid");
+      el.innerHTML = INTEREST_OPTIONS.map(i => `
+        <label style="display:flex; align-items:center; gap:6px; font-size:0.82rem; padding:8px 10px; border:1.5px solid var(--border); border-radius:10px; cursor:pointer;">
+          <input type="checkbox" data-interest="${esc(i)}" style="width:auto;" />
+          ${esc(i)}
+        </label>
+      `).join("");
+      el.querySelectorAll("input[type=checkbox]").forEach(cb => {
+        cb.addEventListener("change", () => {
+          if (cb.checked) selectedInterests.add(cb.dataset.interest);
+          else selectedInterests.delete(cb.dataset.interest);
+        });
+      });
+    }
+    function esc(str) {
+      return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+    renderInterests();
+
+    document.getElementById("join-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("join-submit");
+      const errEl = document.getElementById("join-error");
+      errEl.classList.add("hidden");
+      btn.disabled = true;
+      btn.textContent = "Submitting…";
+
+      const payload = {
+        name: document.getElementById("name").value,
+        email: document.getElementById("email").value,
+        username: document.getElementById("username").value,
+        experience: document.getElementById("experience").value,
+        skills: document.getElementById("skills").value,
+        interests: Array.from(selectedInterests),
+        github: document.getElementById("github").value,
+        linkedin: document.getElementById("linkedin").value,
+        message: document.getElementById("message").value,
+      };
+
+      try {
+        await Api.post("/join", payload);
+        document.getElementById("join-form-wrap").classList.add("hidden");
+        document.getElementById("join-success").classList.remove("hidden");
+      } catch (err) {
+        errEl.textContent = err.message || "Something went wrong. Please try again.";
+        errEl.classList.remove("hidden");
+        btn.disabled = false;
+        btn.textContent = "Submit Application";
+      }
+    });
+  </script>
+</body>
+</html>
