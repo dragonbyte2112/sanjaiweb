@@ -94,5 +94,11 @@ app.use((err, _req, res, _next) => {
 initDb().then(() => {
   app.listen(PORT, () => {
     console.log(`DragonByte API running at http://localhost:${PORT}`);
+    if (typeof fetch !== "function") {
+      console.warn(
+        `⚠️  Running Node.js ${process.version} — no built-in fetch(). The AI assistant widget needs Node 18+. ` +
+          "Update Node.js from https://nodejs.org to enable it.",
+      );
+    }
   });
 });

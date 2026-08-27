@@ -33,6 +33,16 @@ router.post("/chat", async (req, res) => {
     });
   }
 
+  if (typeof fetch !== "function") {
+    console.error(
+      `Assistant chat error: global fetch is not available (Node ${process.version}). ` +
+        "Node.js 18 or newer is required. Download the latest LTS from https://nodejs.org and reinstall.",
+    );
+    return res.status(500).json({
+      error: `Your server is running Node.js ${process.version}, which is too old for the AI assistant (needs Node 18+). Please update Node.js from nodejs.org and restart the server.`,
+    });
+  }
+
   // Keep the request small and safe: cap history length and message size.
   const trimmed = messages.slice(-12).map((m) => ({
     role: m.role === "assistant" ? "assistant" : "user",
@@ -76,8 +86,15 @@ router.post("/chat", async (req, res) => {
 
     res.json({ reply: reply || "Sorry, I didn't catch that — could you rephrase?" });
   } catch (err) {
-    console.error("Assistant chat error:", err);
-    res.status(500).json({ error: "Something went wrong talking to the assistant." });
+    // Log full diagnostic detail server-side; keep the browser-facing message safe.
+    console.error("Assistant chat error:", err.code || err.name, "-", err.message);
+    let userMessage = "Something went wrong talking to the assistant. Check the server terminal for details.";
+    if (err.cause?.code === "ENOTFOUND" || err.code === "ENOTFOUND") {
+      userMessage = "The server couldn't reach the internet (DNS lookup failed). Check your network connection.";
+    } else if (err.cause?.code === "ECONNREFUSED" || err.code === "ECONNREFUSED") {
+      userMessage = "The connection to Anthropic was refused — check your network/firewall settings.";
+    }
+    res.status(500).json({ error: userMessage });
   }
 });
 
