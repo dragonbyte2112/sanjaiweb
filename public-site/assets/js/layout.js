@@ -109,10 +109,66 @@ function renderFooter() {
   `;
 }
 
+// Local, offline FAQ knowledge base — no external API, no key, no cost.
+// Each entry is checked against the visitor's message; the first match wins.
+const ASSISTANT_FAQ = [
+  {
+    keywords: ["join", "sign up", "signup", "become a member", "membership", "how do i join"],
+    reply: "You can join DragonByte a few ways: fill out the form on our Join page, hop into our WhatsApp group, or join the LinkedIn group — links are in the footer. Head to /join.html to get started!",
+  },
+  {
+    keywords: ["ctf", "capture the flag", "arena", "flag", "leaderboard"],
+    reply: "Our CTF Arena is a separate live platform with hands-on challenges and a leaderboard. Find it at dragonbyte-ctf-web.vercel.app, or click \"CTF Arena\" in the nav bar!",
+  },
+  {
+    keywords: ["event", "events", "workshop", "meetup", "webinar", "schedule"],
+    reply: "Check out the Events page for upcoming workshops, meetups, and CTF nights — /events.html. New ones are added regularly, so it's worth checking back.",
+  },
+  {
+    keywords: ["project", "projects", "github", "open source", "opensource", "build"],
+    reply: "The Projects page (/projects.html) showcases open-source security tools built by our members. Want to contribute? Join the community first via /join.html.",
+  },
+  {
+    keywords: ["contact", "email", "reach", "support", "help me", "question"],
+    reply: "You can reach us anytime through the Contact page — /contact.html. Someone from the team will get back to you.",
+  },
+  {
+    keywords: ["about", "founder", "who created", "who made", "who is sanjai", "history", "story"],
+    reply: "DragonByte was founded by Sanjai Rathinam. Read the full story, our core values, and timeline on the About page — /about.html.",
+  },
+  {
+    keywords: ["learn", "resource", "resources", "course", "path", "tutorial", "beginner"],
+    reply: "The Learn page (/learn.html) has resources, workshops, and structured learning paths for every skill level — beginner to advanced.",
+  },
+  {
+    keywords: ["community", "whatsapp", "linkedin", "instagram", "social", "group", "members", "team"],
+    reply: "You can connect with the community on WhatsApp, LinkedIn, and Instagram — the icons are in the footer and on the homepage. Or browse /community.html to see members and teams.",
+  },
+  {
+    keywords: ["hi", "hello", "hey", "yo", "sup"],
+    reply: "Hey there! 👋 Ask me about joining, events, projects, the CTF Arena, or how to get in touch.",
+  },
+  {
+    keywords: ["thank", "thanks", "thx"],
+    reply: "You're welcome! Let me know if there's anything else you'd like to know about DragonByte. 🐉",
+  },
+];
+
+const ASSISTANT_FALLBACK =
+  "I'm just a simple FAQ helper, so I might not have that answer! Try asking about joining, events, projects, the CTF Arena, or check the Contact page (/contact.html) for anything specific.";
+
+function matchAssistantReply(text) {
+  const lower = text.toLowerCase();
+  for (const item of ASSISTANT_FAQ) {
+    if (item.keywords.some((k) => lower.includes(k))) return item.reply;
+  }
+  return ASSISTANT_FALLBACK;
+}
+
 function renderAssistantWidget() {
   return `
     <div id="ai-widget-root">
-      <button id="ai-widget-toggle" aria-label="Open DragonByte AI Assistant" title="Ask DragonByte AI">
+      <button id="ai-widget-toggle" aria-label="Open DragonByte Help Assistant" title="Ask DragonByte Help">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="24" height="24">
           <path d="M12 3c-4.97 0-9 3.5-9 7.8 0 2.4 1.24 4.56 3.2 6.02-.14.9-.5 2.1-1.35 3.18a.5.5 0 0 0 .5.79c1.86-.4 3.3-1.18 4.2-1.78.79.2 1.62.3 2.45.3 4.97 0 9-3.5 9-7.8S16.97 3 12 3Z"/>
           <circle cx="8.5" cy="10.8" r="1"/><circle cx="12" cy="10.8" r="1"/><circle cx="15.5" cy="10.8" r="1"/>
@@ -122,13 +178,13 @@ function renderAssistantWidget() {
       <div id="ai-widget-panel" class="hidden">
         <div id="ai-widget-header">
           <div>
-            <div id="ai-widget-title">DragonByte AI</div>
-            <div id="ai-widget-subtitle">Ask about events, projects, or joining</div>
+            <div id="ai-widget-title">DragonByte Help</div>
+            <div id="ai-widget-subtitle">Quick answers — events, projects, joining</div>
           </div>
           <button id="ai-widget-close" aria-label="Close chat">✕</button>
         </div>
         <div id="ai-widget-messages">
-          <div class="ai-msg ai-msg-bot">Hey! 👋 I'm the DragonByte assistant. Ask me about events, projects, joining the community, or the CTF Arena.</div>
+          <div class="ai-msg ai-msg-bot">Hey! 👋 I'm a quick-help bot for DragonByte. Ask me about events, projects, joining the community, or the CTF Arena.</div>
         </div>
         <form id="ai-widget-form">
           <input id="ai-widget-input" type="text" placeholder="Type a message…" autocomplete="off" />
@@ -150,8 +206,6 @@ function initAssistantWidget() {
   const input = document.getElementById("ai-widget-input");
   const messagesEl = document.getElementById("ai-widget-messages");
 
-  const history = [];
-
   function addMessage(role, text) {
     const div = document.createElement("div");
     div.className = `ai-msg ai-msg-${role === "user" ? "user" : "bot"}`;
@@ -166,13 +220,12 @@ function initAssistantWidget() {
   });
   closeBtn.addEventListener("click", () => panel.classList.add("hidden"));
 
-  form.addEventListener("submit", async (e) => {
+  form.addEventListener("submit", (e) => {
     e.preventDefault();
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
     addMessage("user", text);
-    history.push({ role: "user", content: text });
 
     const typingEl = document.createElement("div");
     typingEl.className = "ai-msg ai-msg-bot ai-msg-typing";
@@ -180,24 +233,12 @@ function initAssistantWidget() {
     messagesEl.appendChild(typingEl);
     messagesEl.scrollTop = messagesEl.scrollHeight;
 
-    try {
-      const res = await fetch("/api/assistant/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
-      });
-      const data = await res.json();
+    // Small delay just so it doesn't feel instant/robotic — everything here
+    // runs locally in the browser, no server or API call involved.
+    setTimeout(() => {
       typingEl.remove();
-      if (!res.ok) {
-        addMessage("bot", data.error || "Something went wrong. Please try again.");
-        return;
-      }
-      addMessage("bot", data.reply);
-      history.push({ role: "assistant", content: data.reply });
-    } catch {
-      typingEl.remove();
-      addMessage("bot", "Couldn't reach the server. Please check your connection and try again.");
-    }
+      addMessage("bot", matchAssistantReply(text));
+    }, 450);
   });
 }
 

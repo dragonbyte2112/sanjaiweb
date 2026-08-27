@@ -16,7 +16,6 @@ import joinRoutes from "./routes/join.js";
 import contactRoutes from "./routes/contact.js";
 import adminStatsRoutes from "./routes/adminStats.js";
 import ctfRoutes from "./routes/ctf.js";
-import assistantRoutes from "./routes/assistant.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const staticSiteDir = path.join(__dirname, "..", "..", "public-site");
@@ -59,7 +58,6 @@ app.use("/api/join", joinRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/admin", adminStatsRoutes);
 app.use("/api/ctf", ctfRoutes);
-app.use("/api/assistant", assistantRoutes);
 
 // Fallback 404 for unknown API routes
 app.use("/api", (_req, res) => res.status(404).json({ error: "Not found" }));
