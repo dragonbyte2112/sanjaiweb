@@ -17,7 +17,9 @@ Keep answers short (2-4 sentences), warm, and practical. If asked something outs
 answer briefly and steer back to how DragonByte can help. If you don't know something specific about the site
 (e.g. exact event dates), tell the visitor to check the relevant page or use the Contact form instead of guessing.`;
 
-// Public: chat with the site assistant
+const GEMINI_MODEL = "gemini-2.0-flash";
+
+// Public: chat with the site assistant (powered by Google Gemini's free tier)
 router.post("/chat", async (req, res) => {
   const { messages } = req.body || {};
 
@@ -25,11 +27,11 @@ router.post("/chat", async (req, res) => {
     return res.status(400).json({ error: "messages array is required" });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res.status(503).json({
       error:
-        "The AI assistant isn't configured yet. Add ANTHROPIC_API_KEY to server/.env to enable it.",
+        "The AI assistant isn't configured yet. Add a free GEMINI_API_KEY to server/.env to enable it (get one at aistudio.google.com/apikey).",
     });
   }
 
@@ -45,54 +47,49 @@ router.post("/chat", async (req, res) => {
 
   // Keep the request small and safe: cap history length and message size.
   const trimmed = messages.slice(-12).map((m) => ({
-    role: m.role === "assistant" ? "assistant" : "user",
-    content: String(m.content || "").slice(0, 2000),
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: String(m.content || "").slice(0, 2000) }],
   }));
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 400,
-        system: SYSTEM_PROMPT,
-        messages: trimmed,
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: trimmed,
+        generationConfig: { maxOutputTokens: 300 },
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Anthropic API error:", response.status, errText);
+      console.error("Gemini API error:", response.status, errText);
       let userMessage = "The assistant is temporarily unavailable. Please try again shortly.";
-      if (errText.includes("credit balance is too low")) {
-        userMessage = "The AI assistant's Anthropic account needs credits added at console.anthropic.com (Plans & Billing) before it can respond.";
-      } else if (response.status === 401) {
-        userMessage = "The AI assistant's API key looks invalid. Please check ANTHROPIC_API_KEY in server/.env.";
+      if (response.status === 400 && errText.includes("API key not valid")) {
+        userMessage = "The AI assistant's API key looks invalid. Please check GEMINI_API_KEY in server/.env.";
+      } else if (response.status === 429) {
+        userMessage = "The free assistant is getting a lot of requests right now — please try again in a minute.";
       }
       return res.status(502).json({ error: userMessage });
     }
 
     const data = await response.json();
-    const reply = (data.content || [])
-      .map((block) => (block.type === "text" ? block.text : ""))
+    const reply = (data.candidates?.[0]?.content?.parts || [])
+      .map((part) => part.text || "")
       .filter(Boolean)
       .join("\n")
       .trim();
 
     res.json({ reply: reply || "Sorry, I didn't catch that — could you rephrase?" });
   } catch (err) {
-    // Log full diagnostic detail server-side; keep the browser-facing message safe.
     console.error("Assistant chat error:", err.code || err.name, "-", err.message);
     let userMessage = "Something went wrong talking to the assistant. Check the server terminal for details.";
     if (err.cause?.code === "ENOTFOUND" || err.code === "ENOTFOUND") {
       userMessage = "The server couldn't reach the internet (DNS lookup failed). Check your network connection.";
     } else if (err.cause?.code === "ECONNREFUSED" || err.code === "ECONNREFUSED") {
-      userMessage = "The connection to Anthropic was refused — check your network/firewall settings.";
+      userMessage = "The connection to Gemini was refused — check your network/firewall settings.";
     }
     res.status(500).json({ error: userMessage });
   }

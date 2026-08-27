@@ -35,7 +35,7 @@ git push -u origin main
 ✅ **Checkpoint:** refresh your GitHub repo page in the browser — you should see all
 your project files there.
 
-> ⚠️ Your `server/.env` file (which has your real Anthropic API key) is deliberately
+> ⚠️ Your `server/.env` file (which will have your Gemini API key once you add one) is deliberately
 > **excluded** from git and will NOT be uploaded to GitHub. That's correct and safe —
 > you'll re-enter your key directly into Render in Step 2 instead.
 
@@ -70,7 +70,7 @@ your project files there.
    | `ADMIN_USERNAME` | `admin` (or your own choice) |
    | `ADMIN_PASSWORD` | your own admin password — don't leave this as `admin123` in production |
    | `CORS_ORIGIN` | `http://localhost:4000` — **you'll update this in Step 4** once you have your Vercel URL |
-   | `ANTHROPIC_API_KEY` | your Anthropic API key (starts with `sk-ant-`) |
+   | `GEMINI_API_KEY` | your free Gemini API key from aistudio.google.com/apikey (leave blank to skip the AI widget) |
 
 6. Click **Create Web Service**. Render will build and start your backend — this
    takes a couple of minutes. When it's done, you'll see a green "Live" status and a
@@ -193,7 +193,7 @@ dragonbyte-api.onrender.com  ──(Render, Express backend + your data)
 - **"Failed to fetch" / blank data on the live site** → check `config.js` has your
   real Render URL, and `CORS_ORIGIN` on Render matches your live frontend URL exactly.
 - **Admin login "Internal server error"** → same CORS mismatch — double-check Step 5.
-- **Site works but AI assistant says "not configured"** → the `ANTHROPIC_API_KEY`
+- **Site works but AI assistant says "not configured"** → the `GEMINI_API_KEY`
   environment variable is missing or empty on Render (Step 2) — re-check it there,
   not in the old `.env` file (Render doesn't use that file).
 - **Changes not showing up live** → both Render and Vercel auto-redeploy on every
