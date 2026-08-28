@@ -6,22 +6,240 @@
   <title>Members — DragonByte</title>
   <link rel="icon" href="/assets/img/logo-icon.png" />
   <link rel="stylesheet" href="/assets/css/style.css" />
+
+  <style>
+    .members-section {
+      min-height: 70vh;
+      padding: 100px 24px;
+      background: linear-gradient(145deg, #f8fafc, #eff6ff);
+    }
+
+    .members-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .members-heading {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    .members-heading .eyebrow {
+      margin-bottom: 10px;
+    }
+
+    .members-heading .lead {
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    .members-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+
+    .member-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 8px 25px rgba(15, 23, 42, 0.06);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .member-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 35px rgba(15, 23, 42, 0.1);
+    }
+
+    .member-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #e0edff;
+      color: #1d4ed8;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    .member-name {
+      margin: 0 0 6px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .member-username {
+      margin: 0 0 14px;
+      color: #2563eb;
+      font-size: 0.95rem;
+    }
+
+    .member-skills {
+      margin: 0;
+      color: #64748b;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .members-status {
+      text-align: center;
+      padding: 40px 20px;
+      color: #64748b;
+    }
+
+    .members-error {
+      text-align: center;
+      padding: 25px;
+      border-radius: 12px;
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
+    @media (max-width: 600px) {
+      .members-section {
+        padding: 70px 18px;
+      }
+
+      .members-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
+
 <body>
+
   <div id="site-header"></div>
+
   <main>
-    <section style="min-height:70vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(145deg, #f8fafc, #eff6ff);">
-      <div class="text-center" style="padding:0 24px; max-width:520px;">
-        <div style="font-size:3.5rem; margin-bottom:20px;">👥</div>
-        <p class="eyebrow">Community</p>
-        <h1 class="h1 mb-3">Members</h1>
-        <p class="lead mb-4">Browse the full DragonByte member directory — coming soon as our community grows.</p>
-        <span class="badge badge-slate" style="font-size:0.8rem; padding:8px 18px;">Coming soon</span>
+    <section class="members-section">
+      <div class="members-container">
+
+        <div class="members-heading">
+          <div style="font-size: 3.5rem; margin-bottom: 20px;">👥</div>
+
+          <p class="eyebrow">Community</p>
+
+          <h1 class="h1 mb-3">DragonByte Members</h1>
+
+          <p class="lead">
+            Meet the members of the DragonByte cybersecurity community.
+          </p>
+        </div>
+
+        <!-- Members will be loaded here -->
+        <div id="members-status" class="members-status">
+          Loading members...
+        </div>
+
+        <div id="members-grid" class="members-grid"></div>
+
       </div>
     </section>
   </main>
+
   <div id="site-footer"></div>
+
   <script src="/assets/js/api.js"></script>
   <script src="/assets/js/layout.js"></script>
+
+  <script>
+    async function loadMembers() {
+      const status = document.getElementById("members-status");
+      const grid = document.getElementById("members-grid");
+
+      try {
+        const response = await fetch("/api/members");
+
+        if (!response.ok) {
+          throw new Error("Failed to load members");
+        }
+
+        const result = await response.json();
+
+        // Support both:
+        // /api/members -> [...]
+        // /api/members -> { members: [...] }
+        const members = Array.isArray(result)
+          ? result
+          : (result.members || result.data || []);
+
+        if (!members.length) {
+          status.innerHTML = `
+            <div style="font-size: 3rem; margin-bottom: 15px;">👥</div>
+            <strong>No members yet</strong>
+            <p>Join DragonByte and become part of the community.</p>
+          `;
+          return;
+        }
+
+        status.style.display = "none";
+
+        grid.innerHTML = members.map(member => {
+          const name = member.name || "DragonByte Member";
+          const username = member.username || "";
+          const skills = member.skills || "";
+
+          const firstLetter = name
+            .trim()
+            .charAt(0)
+            .toUpperCase();
+
+          return `
+            <article class="member-card">
+
+              <div class="member-avatar">
+                ${escapeHtml(firstLetter)}
+              </div>
+
+              <h2 class="member-name">
+                ${escapeHtml(name)}
+              </h2>
+
+              ${
+                username
+                  ? `<p class="member-username">@${escapeHtml(username)}</p>`
+                  : ""
+              }
+
+              ${
+                skills
+                  ? `<p class="member-skills">${escapeHtml(skills)}</p>`
+                  : `<p class="member-skills">DragonByte Community Member</p>`
+              }
+
+            </article>
+          `;
+        }).join("");
+
+      } catch (error) {
+        console.error("Members loading error:", error);
+
+        status.innerHTML = `
+          <div class="members-error">
+            Unable to load members. Please try again.
+          </div>
+        `;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    loadMembers();
+  </script>
+
 </body>
 </html>
