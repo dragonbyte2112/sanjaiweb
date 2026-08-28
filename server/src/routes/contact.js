@@ -1,8 +1,14 @@
 import { Router } from "express";
-import { db, makeId } from "../db.js";
+import { supabase } from "../supabaseClient.js";
+import { makeId } from "../db.js";
 import { requireAuth } from "../auth.js";
 
 const router = Router();
+
+function fail(res, error) {
+  console.error("Supabase error on messages:", error.message);
+  res.status(500).json({ error: "Database error. Please try again." });
+}
 
 // Public: send a contact message
 router.post("/", async (req, res) => {
@@ -11,7 +17,6 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "name, email, subject and message are required" });
   }
 
-  await db.read();
   const entry = {
     id: makeId(),
     read: false,
@@ -21,36 +26,31 @@ router.post("/", async (req, res) => {
     subject,
     message,
   };
-  db.data.messages.push(entry);
-  await db.write();
-  res.status(201).json({ ok: true, id: entry.id });
+  const { data, error } = await supabase.from("messages").insert(entry).select().single();
+  if (error) return fail(res, error);
+  res.status(201).json({ ok: true, id: data.id });
 });
 
 // Admin: list all messages
 router.get("/", requireAuth, async (_req, res) => {
-  await db.read();
-  res.json(db.data.messages);
+  const { data, error } = await supabase.from("messages").select("*").order("createdAt", { ascending: false });
+  if (error) return fail(res, error);
+  res.json(data);
 });
 
 // Admin: mark read / update
 router.put("/:id", requireAuth, async (req, res) => {
-  await db.read();
-  const idx = db.data.messages.findIndex((m) => m.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Not found" });
-  db.data.messages[idx] = { ...db.data.messages[idx], ...req.body };
-  await db.write();
-  res.json(db.data.messages[idx]);
+  const { data, error } = await supabase.from("messages").update(req.body).eq("id", req.params.id).select().maybeSingle();
+  if (error) return fail(res, error);
+  if (!data) return res.status(404).json({ error: "Not found" });
+  res.json(data);
 });
 
 // Admin: delete a message
 router.delete("/:id", requireAuth, async (req, res) => {
-  await db.read();
-  const before = db.data.messages.length;
-  db.data.messages = db.data.messages.filter((m) => m.id !== req.params.id);
-  if (db.data.messages.length === before) {
-    return res.status(404).json({ error: "Not found" });
-  }
-  await db.write();
+  const { data, error } = await supabase.from("messages").delete().eq("id", req.params.id).select().maybeSingle();
+  if (error) return fail(res, error);
+  if (!data) return res.status(404).json({ error: "Not found" });
   res.status(204).end();
 });
 

@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { db, makeId, slugify } from "../db.js";
+import { supabase } from "../supabaseClient.js";
+import { makeId, slugify } from "../db.js";
 import { requireAuth } from "../auth.js";
 
 /**
@@ -11,81 +12,87 @@ import { requireAuth } from "../auth.js";
  *   DELETE /:id          -> admin delete
  *   GET    /admin/all     -> admin list (unfiltered)
  *
- * @param {string} collection   key in db.data, e.g. "events"
+ * @param {string} table   Supabase table name, e.g. "events"
  * @param {object} opts
- * @param {(item: object) => boolean} [opts.publicFilter] filter applied to public GET list
+ * @param {object} [opts.publicMatch] equality filters applied to the public GET list (Supabase .match() shape)
  * @param {boolean} [opts.useSlug] generate a slug field from `title` or `name`
  */
-export function crudFactory(collection, opts = {}) {
+export function crudFactory(table, opts = {}) {
   const router = Router();
-  const { publicFilter = () => true, useSlug = false } = opts;
+  const { publicMatch = {}, useSlug = false } = opts;
+
+  function fail(res, error, fallbackStatus = 500) {
+    console.error(`Supabase error on "${table}":`, error.message);
+    res.status(fallbackStatus).json({ error: "Database error. Please try again." });
+  }
 
   // Public: list
   router.get("/", async (req, res) => {
-    await db.read();
-    const items = db.data[collection].filter(publicFilter);
-    res.json(items);
+    let query = supabase.from(table).select("*");
+    for (const [key, value] of Object.entries(publicMatch)) query = query.eq(key, value);
+    const { data, error } = await query.order("createdAt", { ascending: false });
+    if (error) return fail(res, error);
+    res.json(data);
   });
 
   // Admin: unfiltered list (must be defined before "/:id")
   router.get("/admin/all", requireAuth, async (_req, res) => {
-    await db.read();
-    res.json(db.data[collection]);
+    const { data, error } = await supabase.from(table).select("*").order("createdAt", { ascending: false });
+    if (error) return fail(res, error);
+    res.json(data);
   });
 
   // Public: single item by id or slug
   router.get("/:id", async (req, res) => {
-    await db.read();
-    const item = db.data[collection].find(
-      (i) => i.id === req.params.id || i.slug === req.params.id,
-    );
-    if (!item) return res.status(404).json({ error: "Not found" });
-    res.json(item);
+    const { data, error } = await supabase
+      .from(table)
+      .select("*")
+      .or(`id.eq.${req.params.id},slug.eq.${req.params.id}`)
+      .maybeSingle();
+    if (error) return fail(res, error);
+    if (!data) return res.status(404).json({ error: "Not found" });
+    res.json(data);
   });
 
   // Admin: create
   router.post("/", requireAuth, async (req, res) => {
-    await db.read();
     const now = new Date().toISOString();
     const item = { id: makeId(), createdAt: now, updatedAt: now, ...req.body };
+
     if (useSlug && !item.slug) {
       const base = slugify(item.title || item.name || item.id);
       let slug = base;
       let n = 1;
-      while (db.data[collection].some((i) => i.slug === slug)) {
+      // Keep trying until we find a slug that isn't taken yet.
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data: clash } = await supabase.from(table).select("id").eq("slug", slug).maybeSingle();
+        if (!clash) break;
         slug = `${base}-${n++}`;
       }
       item.slug = slug;
     }
-    db.data[collection].push(item);
-    await db.write();
-    res.status(201).json(item);
+
+    const { data, error } = await supabase.from(table).insert(item).select().single();
+    if (error) return fail(res, error);
+    res.status(201).json(data);
   });
 
   // Admin: update
   router.put("/:id", requireAuth, async (req, res) => {
-    await db.read();
-    const idx = db.data[collection].findIndex((i) => i.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: "Not found" });
-    db.data[collection][idx] = {
-      ...db.data[collection][idx],
-      ...req.body,
-      id: db.data[collection][idx].id,
-      updatedAt: new Date().toISOString(),
-    };
-    await db.write();
-    res.json(db.data[collection][idx]);
+    const { id: _ignoredId, ...rest } = req.body || {};
+    const updates = { ...rest, updatedAt: new Date().toISOString() };
+    const { data, error } = await supabase.from(table).update(updates).eq("id", req.params.id).select().maybeSingle();
+    if (error) return fail(res, error);
+    if (!data) return res.status(404).json({ error: "Not found" });
+    res.json(data);
   });
 
   // Admin: delete
   router.delete("/:id", requireAuth, async (req, res) => {
-    await db.read();
-    const before = db.data[collection].length;
-    db.data[collection] = db.data[collection].filter((i) => i.id !== req.params.id);
-    if (db.data[collection].length === before) {
-      return res.status(404).json({ error: "Not found" });
-    }
-    await db.write();
+    const { data, error } = await supabase.from(table).delete().eq("id", req.params.id).select().maybeSingle();
+    if (error) return fail(res, error);
+    if (!data) return res.status(404).json({ error: "Not found" });
     res.status(204).end();
   });
 

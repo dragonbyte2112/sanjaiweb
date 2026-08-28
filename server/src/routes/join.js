@@ -1,8 +1,14 @@
 import { Router } from "express";
-import { db, makeId } from "../db.js";
+import { supabase } from "../supabaseClient.js";
+import { makeId } from "../db.js";
 import { requireAuth } from "../auth.js";
 
 const router = Router();
+
+function fail(res, error) {
+  console.error("Supabase error on joinRequests:", error.message);
+  res.status(500).json({ error: "Database error. Please try again." });
+}
 
 // Public: submit a join application
 router.post("/", async (req, res) => {
@@ -11,37 +17,39 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "name, email and username are required" });
   }
 
-  await db.read();
   const application = {
     id: makeId(),
     status: "pending", // pending | approved | rejected
     createdAt: new Date().toISOString(),
     ...req.body,
   };
-  db.data.joinRequests.push(application);
-  await db.write();
-  res.status(201).json({ ok: true, id: application.id });
+  const { data, error } = await supabase.from("joinRequests").insert(application).select().single();
+  if (error) return fail(res, error);
+  res.status(201).json({ ok: true, id: data.id });
 });
 
 // Admin: list all applications
 router.get("/", requireAuth, async (_req, res) => {
-  await db.read();
-  res.json(db.data.joinRequests);
+  const { data, error } = await supabase.from("joinRequests").select("*").order("createdAt", { ascending: false });
+  if (error) return fail(res, error);
+  res.json(data);
 });
 
 // Admin: update status (e.g. approve/reject). Approving creates a member record.
 router.put("/:id", requireAuth, async (req, res) => {
-  await db.read();
-  const idx = db.data.joinRequests.findIndex((j) => j.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "Not found" });
-
-  const updated = { ...db.data.joinRequests[idx], ...req.body };
-  db.data.joinRequests[idx] = updated;
+  const { data: updated, error } = await supabase
+    .from("joinRequests")
+    .update(req.body)
+    .eq("id", req.params.id)
+    .select()
+    .maybeSingle();
+  if (error) return fail(res, error);
+  if (!updated) return res.status(404).json({ error: "Not found" });
 
   if (req.body.status === "approved") {
-    const alreadyMember = db.data.members.some((m) => m.email === updated.email);
-    if (!alreadyMember) {
-      db.data.members.push({
+    const { data: existing } = await supabase.from("members").select("id").eq("email", updated.email).maybeSingle();
+    if (!existing) {
+      const { error: memberError } = await supabase.from("members").insert({
         id: makeId(),
         name: updated.name,
         email: updated.email,
@@ -50,22 +58,18 @@ router.put("/:id", requireAuth, async (req, res) => {
         interests: updated.interests || [],
         joinedAt: new Date().toISOString(),
       });
+      if (memberError) console.error("Failed to create member from approved join request:", memberError.message);
     }
   }
 
-  await db.write();
   res.json(updated);
 });
 
 // Admin: delete an application
 router.delete("/:id", requireAuth, async (req, res) => {
-  await db.read();
-  const before = db.data.joinRequests.length;
-  db.data.joinRequests = db.data.joinRequests.filter((j) => j.id !== req.params.id);
-  if (db.data.joinRequests.length === before) {
-    return res.status(404).json({ error: "Not found" });
-  }
-  await db.write();
+  const { data, error } = await supabase.from("joinRequests").delete().eq("id", req.params.id).select().maybeSingle();
+  if (error) return fail(res, error);
+  if (!data) return res.status(404).json({ error: "Not found" });
   res.status(204).end();
 });
 

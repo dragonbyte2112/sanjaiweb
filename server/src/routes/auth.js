@@ -1,6 +1,6 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { db } from "../db.js";
+import { supabase } from "../supabaseClient.js";
 import { signToken, requireAuth } from "../auth.js";
 
 const router = Router();
@@ -11,8 +11,11 @@ router.post("/login", async (req, res) => {
     return res.status(400).json({ error: "username and password are required" });
   }
 
-  await db.read();
-  const admin = db.data.admin;
+  const { data: admin, error } = await supabase.from("admin").select("*").eq("id", "main").maybeSingle();
+  if (error) {
+    console.error("Supabase error on login:", error.message);
+    return res.status(500).json({ error: "Database error. Please try again." });
+  }
   if (!admin || admin.username !== username) {
     return res.status(401).json({ error: "Invalid credentials" });
   }
@@ -39,15 +42,21 @@ router.post("/change-password", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "New password must be at least 6 characters" });
   }
 
-  await db.read();
-  const admin = db.data.admin;
+  const { data: admin, error: readError } = await supabase.from("admin").select("*").eq("id", "main").maybeSingle();
+  if (readError || !admin) {
+    return res.status(500).json({ error: "Database error. Please try again." });
+  }
+
   const valid = await bcrypt.compare(currentPassword, admin.passwordHash);
   if (!valid) {
     return res.status(401).json({ error: "Current password is incorrect" });
   }
 
-  admin.passwordHash = await bcrypt.hash(newPassword, 10);
-  await db.write();
+  const newHash = await bcrypt.hash(newPassword, 10);
+  const { error: writeError } = await supabase.from("admin").update({ passwordHash: newHash }).eq("id", "main");
+  if (writeError) {
+    return res.status(500).json({ error: "Database error. Please try again." });
+  }
   res.json({ ok: true });
 });
 
