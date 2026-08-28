@@ -1,27 +1,468 @@
 <!doctype html>
 <html lang="en">
 <head>
+
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
   <title>Teams — DragonByte</title>
-  <link rel="icon" href="/assets/img/logo-icon.png" />
-  <link rel="stylesheet" href="/assets/css/style.css" />
+
+  <link
+    rel="icon"
+    href="/assets/img/logo-icon.png"
+  />
+
+  <link
+    rel="stylesheet"
+    href="/assets/css/style.css"
+  />
+
 </head>
+
 <body>
+
   <div id="site-header"></div>
+
+
   <main>
-    <section style="min-height:70vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(145deg, #f8fafc, #eff6ff);">
-      <div class="text-center" style="padding:0 24px; max-width:520px;">
-        <div style="font-size:3.5rem; margin-bottom:20px;">🏆</div>
-        <p class="eyebrow">Community</p>
-        <h1 class="h1 mb-3">Teams</h1>
-        <p class="lead mb-4">See the teams competing together in CTFs and collaborating on shared projects.</p>
-        <span class="badge badge-slate" style="font-size:0.8rem; padding:8px 18px;">Coming soon</span>
+
+    <!-- Hero -->
+    <section
+      style="
+        padding:96px 0;
+        background:linear-gradient(
+          145deg,
+          #f8fafc,
+          #eff6ff
+        );
+      "
+    >
+
+      <div class="container-sm text-center">
+
+        <div
+          style="
+            font-size:3rem;
+            margin-bottom:20px;
+          "
+        >
+          🏆
+        </div>
+
+
+        <p class="eyebrow">
+          COMMUNITY
+        </p>
+
+
+        <h1 class="h1 mb-3">
+          DragonByte Teams
+        </h1>
+
+
+        <p class="lead">
+          Discover the teams collaborating,
+          learning, and competing together.
+        </p>
+
       </div>
+
     </section>
+
+
+    <!-- Teams -->
+    <section class="section">
+
+      <div class="container">
+
+        <div
+          id="teams-list"
+          class="grid grid-3"
+        >
+
+          <div class="loading-text">
+            Loading teams…
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
   </main>
+
+
   <div id="site-footer"></div>
-  <script src="/assets/js/api.js"></script>
+
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="/assets/js/supabase.js"></script>
   <script src="/assets/js/layout.js"></script>
+
+
+  <script>
+
+    function esc(value) {
+
+      if (
+        value === null ||
+        value === undefined
+      ) {
+        return "";
+      }
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    }
+
+
+    function getValue(
+      row,
+      names,
+      fallback = ""
+    ) {
+
+      for (const name of names) {
+
+        if (
+          row[name] !== undefined &&
+          row[name] !== null &&
+          row[name] !== ""
+        ) {
+
+          return row[name];
+
+        }
+
+      }
+
+      return fallback;
+
+    }
+
+
+    async function loadTeams() {
+
+      const el =
+        document.getElementById("teams-list");
+
+
+      try {
+
+        console.log(
+          "DragonByte: Loading teams from Supabase..."
+        );
+
+
+        const {
+          data: teams,
+          error
+        } = await supabaseClient
+          .from("teams")
+          .select("*");
+
+
+        if (error) {
+
+          console.error(
+            "Supabase teams error:",
+            error
+          );
+
+          throw error;
+
+        }
+
+
+        console.log(
+          "DragonByte: Teams received:",
+          teams
+        );
+
+
+        if (
+          !teams ||
+          teams.length === 0
+        ) {
+
+          el.innerHTML = `
+
+            <div
+              class="empty-state"
+              style="grid-column:1/-1;"
+            >
+
+              <div
+                class="icon"
+                style="font-size:3rem;"
+              >
+                🏆
+              </div>
+
+
+              <h3 class="h3 mb-1">
+                No teams yet
+              </h3>
+
+
+              <p class="text-sm text-muted mb-4">
+                DragonByte teams will appear here
+                when they are added.
+              </p>
+
+
+              <a
+                href="/join.html"
+                class="btn btn-primary btn-sm"
+              >
+                Join DragonByte
+              </a>
+
+            </div>
+
+          `;
+
+          return;
+
+        }
+
+
+        el.innerHTML = teams.map(team => {
+
+          const name = getValue(
+            team,
+            [
+              "name",
+              "team_name",
+              "teamName",
+              "title"
+            ],
+            "DragonByte Team"
+          );
+
+
+          const description = getValue(
+            team,
+            [
+              "description",
+              "bio",
+              "about"
+            ],
+            "Cybersecurity community team."
+          );
+
+
+          const category = getValue(
+            team,
+            [
+              "category",
+              "type",
+              "focus"
+            ],
+            "CTF Team"
+          );
+
+
+          const github = getValue(
+            team,
+            [
+              "github_url",
+              "githubUrl",
+              "github"
+            ],
+            ""
+          );
+
+
+          const website = getValue(
+            team,
+            [
+              "website_url",
+              "websiteUrl",
+              "website",
+              "url"
+            ],
+            ""
+          );
+
+
+          return `
+
+            <div
+              class="card"
+              style="
+                padding:28px;
+                text-align:center;
+              "
+            >
+
+              <div
+                style="
+                  width:80px;
+                  height:80px;
+                  margin:0 auto 18px;
+                  border-radius:20px;
+                  display:flex;
+                  align-items:center;
+                  justify-content:center;
+                  background:linear-gradient(
+                    135deg,
+                    #dbeafe,
+                    #e0f2fe
+                  );
+                  font-size:2.5rem;
+                "
+              >
+                🏆
+              </div>
+
+
+              <h3 class="h3 mb-1">
+                ${esc(name)}
+              </h3>
+
+
+              <p
+                class="text-sm"
+                style="
+                  color:var(--primary);
+                  font-weight:600;
+                "
+              >
+                ${esc(category)}
+              </p>
+
+
+              <p
+                class="text-sm text-muted"
+                style="
+                  margin-top:12px;
+                  line-height:1.6;
+                "
+              >
+                ${esc(description)}
+              </p>
+
+
+              ${
+                github || website
+                  ? `
+
+                    <div
+                      style="
+                        display:flex;
+                        justify-content:center;
+                        gap:8px;
+                        flex-wrap:wrap;
+                        margin-top:18px;
+                      "
+                    >
+
+                      ${
+                        github
+                          ? `
+                            <a
+                              href="${esc(github)}"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="btn btn-outline btn-sm"
+                            >
+                              GitHub
+                            </a>
+                          `
+                          : ""
+                      }
+
+
+                      ${
+                        website
+                          ? `
+                            <a
+                              href="${esc(website)}"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="btn btn-primary btn-sm"
+                            >
+                              Website
+                            </a>
+                          `
+                          : ""
+                      }
+
+                    </div>
+
+                  `
+                  : ""
+              }
+
+            </div>
+
+          `;
+
+        }).join("");
+
+
+      } catch (error) {
+
+        console.error(
+          "Failed to load teams:",
+          error
+        );
+
+
+        el.innerHTML = `
+
+          <div
+            class="empty-state"
+            style="grid-column:1/-1;"
+          >
+
+            <div
+              class="icon"
+              style="font-size:3rem;"
+            >
+              ⚠️
+            </div>
+
+
+            <h3 class="h3 mb-1">
+              Couldn't load teams
+            </h3>
+
+
+            <p class="text-sm text-muted">
+              ${esc(
+                error?.message ||
+                "Supabase connection error"
+              )}
+            </p>
+
+          </div>
+
+        `;
+
+      }
+
+    }
+
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      loadTeams
+    );
+
+  </script>
+
 </body>
 </html>

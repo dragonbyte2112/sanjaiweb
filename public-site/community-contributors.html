@@ -3,25 +3,423 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Contributors — DragonByte</title>
+
   <link rel="icon" href="/assets/img/logo-icon.png" />
   <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
+
 <body>
+
   <div id="site-header"></div>
+
   <main>
-    <section style="min-height:70vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(145deg, #f8fafc, #eff6ff);">
-      <div class="text-center" style="padding:0 24px; max-width:520px;">
-        <div style="font-size:3.5rem; margin-bottom:20px;">⭐</div>
-        <p class="eyebrow">Community</p>
-        <h1 class="h1 mb-3">Contributors</h1>
-        <p class="lead mb-4">Recognizing the members who give back the most through code, content, and mentorship.</p>
-        <span class="badge badge-slate" style="font-size:0.8rem; padding:8px 18px;">Coming soon</span>
+
+    <!-- Hero -->
+    <section
+      style="
+        padding:96px 0;
+        background:linear-gradient(145deg,#f8fafc,#eff6ff);
+      "
+    >
+      <div class="container-sm text-center">
+
+        <div style="font-size:3rem;margin-bottom:20px;">
+          ⭐
+        </div>
+
+        <p class="eyebrow">
+          COMMUNITY
+        </p>
+
+        <h1 class="h1 mb-3">
+          DragonByte Contributors
+        </h1>
+
+        <p class="lead">
+          Meet the people who contribute their skills,
+          knowledge, projects, and ideas to DragonByte.
+        </p>
+
       </div>
     </section>
+
+
+    <!-- Contributors -->
+    <section class="section">
+
+      <div class="container">
+
+        <div
+          id="contributors-list"
+          class="grid grid-3"
+        >
+          <div class="loading-text">
+            Loading contributors…
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
   </main>
+
+
   <div id="site-footer"></div>
-  <script src="/assets/js/api.js"></script>
+
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="/assets/js/supabase.js"></script>
   <script src="/assets/js/layout.js"></script>
+
+
+  <script>
+
+    function esc(value) {
+
+      if (value === null || value === undefined) {
+        return "";
+      }
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    }
+
+
+    function getValue(row, names, fallback = "") {
+
+      for (const name of names) {
+
+        if (
+          row[name] !== undefined &&
+          row[name] !== null &&
+          row[name] !== ""
+        ) {
+          return row[name];
+        }
+
+      }
+
+      return fallback;
+
+    }
+
+
+    async function loadContributors() {
+
+      const el =
+        document.getElementById("contributors-list");
+
+      try {
+
+        console.log(
+          "DragonByte: Loading contributors from Supabase..."
+        );
+
+
+        const {
+          data: contributors,
+          error
+        } = await supabaseClient
+          .from("contributors")
+          .select("*");
+
+
+        if (error) {
+
+          console.error(
+            "Supabase contributors error:",
+            error
+          );
+
+          throw error;
+
+        }
+
+
+        console.log(
+          "DragonByte: Contributors received:",
+          contributors
+        );
+
+
+        if (
+          !contributors ||
+          contributors.length === 0
+        ) {
+
+          el.innerHTML = `
+
+            <div
+              class="empty-state"
+              style="grid-column:1/-1;"
+            >
+
+              <div
+                class="icon"
+                style="font-size:3rem;"
+              >
+                ⭐
+              </div>
+
+              <h3 class="h3 mb-1">
+                No contributors yet
+              </h3>
+
+              <p class="text-sm text-muted mb-4">
+                Contributors will appear here
+                as the community grows.
+              </p>
+
+              <a
+                href="/join.html"
+                class="btn btn-primary btn-sm"
+              >
+                Join DragonByte
+              </a>
+
+            </div>
+
+          `;
+
+          return;
+
+        }
+
+
+        el.innerHTML = contributors.map(c => {
+
+          const name = getValue(
+            c,
+            [
+              "name",
+              "full_name",
+              "fullName",
+              "username"
+            ],
+            "DragonByte Contributor"
+          );
+
+
+          const role = getValue(
+            c,
+            [
+              "role",
+              "position",
+              "title",
+              "designation"
+            ],
+            "Contributor"
+          );
+
+
+          const bio = getValue(
+            c,
+            [
+              "bio",
+              "about",
+              "description"
+            ],
+            "DragonByte community contributor."
+          );
+
+
+          const github = getValue(
+            c,
+            [
+              "github_url",
+              "githubUrl",
+              "github"
+            ],
+            ""
+          );
+
+
+          const linkedin = getValue(
+            c,
+            [
+              "linkedin_url",
+              "linkedinUrl",
+              "linkedin"
+            ],
+            ""
+          );
+
+
+          return `
+
+            <div
+              class="card"
+              style="
+                padding:28px;
+                text-align:center;
+              "
+            >
+
+              <div
+                style="
+                  width:80px;
+                  height:80px;
+                  margin:0 auto 18px;
+                  border-radius:50%;
+                  display:flex;
+                  align-items:center;
+                  justify-content:center;
+                  background:linear-gradient(
+                    135deg,
+                    #dbeafe,
+                    #e0f2fe
+                  );
+                  font-size:2rem;
+                  font-weight:700;
+                  color:#1d4ed8;
+                "
+              >
+                ⭐
+              </div>
+
+
+              <h3 class="h3 mb-1">
+                ${esc(name)}
+              </h3>
+
+
+              <p
+                class="text-sm"
+                style="
+                  color:var(--primary);
+                  font-weight:600;
+                "
+              >
+                ${esc(role)}
+              </p>
+
+
+              <p
+                class="text-sm text-muted"
+                style="
+                  margin-top:12px;
+                  line-height:1.6;
+                "
+              >
+                ${esc(bio)}
+              </p>
+
+
+              ${
+                github || linkedin
+                  ? `
+
+                    <div
+                      style="
+                        display:flex;
+                        justify-content:center;
+                        gap:8px;
+                        margin-top:18px;
+                      "
+                    >
+
+                      ${
+                        github
+                          ? `
+                            <a
+                              href="${esc(github)}"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="btn btn-outline btn-sm"
+                            >
+                              GitHub
+                            </a>
+                          `
+                          : ""
+                      }
+
+
+                      ${
+                        linkedin
+                          ? `
+                            <a
+                              href="${esc(linkedin)}"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="btn btn-outline btn-sm"
+                            >
+                              LinkedIn
+                            </a>
+                          `
+                          : ""
+                      }
+
+                    </div>
+
+                  `
+                  : ""
+              }
+
+            </div>
+
+          `;
+
+        }).join("");
+
+
+      } catch (error) {
+
+        console.error(
+          "Failed to load contributors:",
+          error
+        );
+
+
+        el.innerHTML = `
+
+          <div
+            class="empty-state"
+            style="grid-column:1/-1;"
+          >
+
+            <div
+              class="icon"
+              style="font-size:3rem;"
+            >
+              ⚠️
+            </div>
+
+            <h3 class="h3 mb-1">
+              Couldn't load contributors
+            </h3>
+
+            <p class="text-sm text-muted">
+              ${esc(
+                error?.message ||
+                "Supabase connection error"
+              )}
+            </p>
+
+          </div>
+
+        `;
+
+      }
+
+    }
+
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      loadContributors
+    );
+
+  </script>
+
 </body>
 </html>
