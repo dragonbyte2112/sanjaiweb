@@ -1,98 +1,798 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Community — DragonByte</title>
+
   <link rel="icon" href="/assets/img/logo-icon.png" />
   <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
+
 <body>
+
+  <!-- =========================
+       HEADER
+  ========================== -->
+
   <div id="site-header"></div>
+
+
+  <!-- =========================
+       MAIN
+  ========================== -->
+
   <main>
-    <section style="padding:96px 0; background:linear-gradient(145deg, #f8fafc, #eff6ff);">
+
+    <!-- HERO -->
+    <section
+      style="
+        padding: 96px 0;
+        background: linear-gradient(145deg, #f8fafc, #eff6ff);
+      "
+    >
+
       <div class="container-sm text-center">
-        <p class="eyebrow">Community</p>
-        <h1 class="h1 mb-3">Our Growing <span style="color:var(--primary);">Community</span></h1>
-        <p class="lead">Meet the members, contributors, and teams that make DragonByte what it is.</p>
+
+        <p class="eyebrow">
+          Community
+        </p>
+
+        <h1 class="h1 mb-3">
+          Our Growing
+          <span style="color:var(--primary);">
+            Community
+          </span>
+        </h1>
+
+        <p class="lead">
+          Meet the members, contributors, and teams that make
+          DragonByte what it is.
+        </p>
+
       </div>
+
     </section>
+
+
+    <!-- =========================
+         COMMUNITY ECOSYSTEM
+    ========================== -->
 
     <section class="section">
+
       <div class="container">
+
         <div class="grid grid-3">
-          <a href="/community-members.html" class="card ecosystem-card">
-            <div class="ecosystem-icon">👥</div>
-            <h3 class="h3 mb-1">Members</h3>
-            <p class="text-sm text-muted">Browse our community of security enthusiasts, students, and professionals.</p>
+
+          <!-- MEMBERS -->
+
+          <a
+            href="/community-members.html"
+            class="card ecosystem-card"
+          >
+
+            <div class="ecosystem-icon">
+              👥
+            </div>
+
+            <h3 class="h3 mb-1">
+              Members
+            </h3>
+
+            <p class="text-sm text-muted">
+              Browse our community of security enthusiasts,
+              students, and professionals.
+            </p>
+
           </a>
-          <a href="/community-teams.html" class="card ecosystem-card">
-            <div class="ecosystem-icon">🏆</div>
-            <h3 class="h3 mb-1">Teams</h3>
-            <p class="text-sm text-muted">See the teams competing together in CTFs and collaborating on projects.</p>
+
+
+          <!-- TEAMS -->
+
+          <a
+            href="/community-teams.html"
+            class="card ecosystem-card"
+          >
+
+            <div class="ecosystem-icon">
+              🏆
+            </div>
+
+            <h3 class="h3 mb-1">
+              Teams
+            </h3>
+
+            <p class="text-sm text-muted">
+              See the teams competing together in CTFs
+              and collaborating on projects.
+            </p>
+
           </a>
-          <a href="/community-contributors.html" class="card ecosystem-card">
-            <div class="ecosystem-icon">⭐</div>
-            <h3 class="h3 mb-1">Contributors</h3>
-            <p class="text-sm text-muted">Recognizing the members who give back the most to the community.</p>
+
+
+          <!-- CONTRIBUTORS -->
+
+          <a
+            href="/community-contributors.html"
+            class="card ecosystem-card"
+          >
+
+            <div class="ecosystem-icon">
+              ⭐
+            </div>
+
+            <h3 class="h3 mb-1">
+              Contributors
+            </h3>
+
+            <p class="text-sm text-muted">
+              Recognizing the members who give back
+              the most to the community.
+            </p>
+
           </a>
+
         </div>
+
       </div>
+
     </section>
 
-    <section class="section" style="background:#fff;">
+
+    <!-- =========================
+         FEATURED MEMBERS
+    ========================== -->
+
+    <section
+      class="section"
+      style="background:#fff;"
+    >
+
       <div class="container">
-        <p class="eyebrow mb-2" style="margin-top:0;">Featured Members</p>
-        <div id="community-contributors" class="grid grid-3 mb-6"><div class="loading-text">Loading…</div></div>
 
-        <p class="eyebrow mb-2">Testimonials</p>
-        <div id="community-testimonials" class="grid grid-3"><div class="loading-text">Loading…</div></div>
+        <p
+          class="eyebrow mb-2"
+          style="margin-top:0;"
+        >
+          Featured Members
+        </p>
+
+
+        <div
+          id="community-contributors"
+          class="grid grid-3 mb-6"
+        >
+
+          <div class="loading-text">
+            Loading members…
+          </div>
+
+        </div>
+
+
+        <!-- =========================
+             TESTIMONIALS
+        ========================== -->
+
+        <p class="eyebrow mb-2">
+          Testimonials
+        </p>
+
+
+        <div
+          id="community-testimonials"
+          class="grid grid-3"
+        >
+
+          <div class="loading-text">
+            Loading testimonials…
+          </div>
+
+        </div>
+
       </div>
+
     </section>
+
   </main>
+
+
+  <!-- =========================
+       FOOTER
+  ========================== -->
+
   <div id="site-footer"></div>
-  <script src="/assets/js/api.js"></script>
+
+
+  <!-- =========================
+       SUPABASE
+  ========================== -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="/assets/js/supabase.js"></script>
+
   <script src="/assets/js/layout.js"></script>
+
+
+  <!-- =========================
+       COMMUNITY JAVASCRIPT
+  ========================== -->
+
   <script>
+
+    /* =========================================
+       ESCAPE HTML
+    ========================================= */
+
+    function esc(str) {
+
+      if (str === null || str === undefined) {
+        return "";
+      }
+
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    }
+
+
+    /* =========================================
+       LOAD CONTRIBUTORS / FEATURED MEMBERS
+    ========================================= */
+
     async function loadContributors() {
-      const el = document.getElementById("community-contributors");
-      try {
-        const contributors = await Api.get("/contributors");
-        if (!contributors.length) {
-          el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">👥</div><h3 class="h3 mb-1">No members listed yet</h3><p class="text-sm text-muted">Member profiles will appear here as the community grows.</p></div>`;
-          return;
-        }
-        el.innerHTML = contributors.map(c => `
-          <div class="card text-center">
-            <h3 class="h3 mb-1">${esc(c.name)}</h3>
-            <p class="text-sm" style="color:var(--primary);">${esc(c.role || "")}</p>
-            <p class="text-sm text-muted mt-2">${esc(c.bio || "")}</p>
-          </div>
-        `).join("");
-      } catch {
-        el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">⚠️</div><h3 class="h3 mb-1">Couldn't load members</h3></div>`;
+
+      const el =
+        document.getElementById(
+          "community-contributors"
+        );
+
+      if (!el) {
+        console.error(
+          "community-contributors element not found"
+        );
+
+        return;
       }
+
+
+      try {
+
+        console.log(
+          "DragonByte: Loading contributors from Supabase..."
+        );
+
+
+        /* -----------------------------------------
+           CHECK SUPABASE CLIENT
+        ----------------------------------------- */
+
+        if (
+          typeof supabaseClient === "undefined" ||
+          !supabaseClient
+        ) {
+
+          throw new Error(
+            "Supabase client is not initialized."
+          );
+
+        }
+
+
+        /* -----------------------------------------
+           GET CONTRIBUTORS
+        ----------------------------------------- */
+
+        const {
+          data: contributors,
+          error
+        } = await supabaseClient
+          .from("contributors")
+          .select("*");
+
+
+        /* -----------------------------------------
+           SUPABASE ERROR
+        ----------------------------------------- */
+
+        if (error) {
+
+          console.error(
+            "Supabase contributors error:",
+            error
+          );
+
+          throw error;
+
+        }
+
+
+        console.log(
+          "Contributors received:",
+          contributors
+        );
+
+
+        /* -----------------------------------------
+           EMPTY RESULT
+        ----------------------------------------- */
+
+        if (
+          !contributors ||
+          contributors.length === 0
+        ) {
+
+          el.innerHTML = `
+
+            <div
+              class="empty-state"
+              style="grid-column:1/-1;"
+            >
+
+              <div class="icon">
+                👥
+              </div>
+
+              <h3 class="h3 mb-1">
+                No members listed yet
+              </h3>
+
+              <p class="text-sm text-muted">
+                Member profiles will appear here
+                as the community grows.
+              </p>
+
+            </div>
+
+          `;
+
+          return;
+
+        }
+
+
+        /* -----------------------------------------
+           DISPLAY CONTRIBUTORS
+        ----------------------------------------- */
+
+        el.innerHTML = contributors
+          .map(c => {
+
+            const name =
+              c.name ||
+              c.full_name ||
+              c.username ||
+              "Community Member";
+
+
+            const role =
+              c.role ||
+              c.position ||
+              c.title ||
+              "DragonByte Member";
+
+
+            const bio =
+              c.bio ||
+              c.description ||
+              "";
+
+
+            const avatar =
+              c.avatar_url ||
+              c.avatar ||
+              c.profile_image ||
+              "";
+
+
+            return `
+
+              <div
+                class="card text-center"
+                style="
+                  padding:24px;
+                  height:100%;
+                "
+              >
+
+                <!-- AVATAR -->
+
+                <div
+                  style="
+                    width:80px;
+                    height:80px;
+                    margin:0 auto 16px;
+                    border-radius:50%;
+                    overflow:hidden;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    background:#eff6ff;
+                    font-size:32px;
+                  "
+                >
+
+                  ${
+                    avatar
+                      ? `
+                        <img
+                          src="${esc(avatar)}"
+                          alt="${esc(name)}"
+                          style="
+                            width:100%;
+                            height:100%;
+                            object-fit:cover;
+                          "
+                        />
+                      `
+                      : `
+                        👤
+                      `
+                  }
+
+                </div>
+
+
+                <!-- NAME -->
+
+                <h3 class="h3 mb-1">
+                  ${esc(name)}
+                </h3>
+
+
+                <!-- ROLE -->
+
+                <p
+                  class="text-sm"
+                  style="color:var(--primary);"
+                >
+                  ${esc(role)}
+                </p>
+
+
+                <!-- BIO -->
+
+                ${
+                  bio
+                    ? `
+                      <p
+                        class="text-sm text-muted mt-2"
+                      >
+                        ${esc(bio)}
+                      </p>
+                    `
+                    : ""
+                }
+
+              </div>
+
+            `;
+
+          })
+          .join("");
+
+
+      } catch (error) {
+
+        console.error(
+          "Failed to load contributors:",
+          error
+        );
+
+
+        el.innerHTML = `
+
+          <div
+            class="empty-state"
+            style="grid-column:1/-1;"
+          >
+
+            <div class="icon">
+              ⚠️
+            </div>
+
+            <h3 class="h3 mb-1">
+              Couldn't load members
+            </h3>
+
+            <p class="text-sm text-muted">
+              ${esc(
+                error?.message ||
+                "Unable to load members from Supabase."
+              )}
+            </p>
+
+          </div>
+
+        `;
+
+      }
+
     }
+
+
+
+    /* =========================================
+       LOAD TESTIMONIALS
+    ========================================= */
+
     async function loadTestimonials() {
-      const el = document.getElementById("community-testimonials");
-      try {
-        const testimonials = await Api.get("/testimonials");
-        if (!testimonials.length) {
-          el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">💬</div><h3 class="h3 mb-1">No testimonials yet</h3></div>`;
-          return;
-        }
-        el.innerHTML = testimonials.map(t => `
-          <div class="card">
-            <p class="text-sm mb-3">"${esc(t.quote)}"</p>
-            <div class="text-sm" style="font-weight:600;">${esc(t.name)}</div>
-            <div class="text-xs text-muted">${esc(t.role || "")}</div>
-          </div>
-        `).join("");
-      } catch {
-        el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">⚠️</div><h3 class="h3 mb-1">Couldn't load testimonials</h3></div>`;
+
+      const el =
+        document.getElementById(
+          "community-testimonials"
+        );
+
+      if (!el) {
+
+        console.error(
+          "community-testimonials element not found"
+        );
+
+        return;
+
       }
+
+
+      try {
+
+        console.log(
+          "DragonByte: Loading testimonials from Supabase..."
+        );
+
+
+        /* -----------------------------------------
+           CHECK SUPABASE CLIENT
+        ----------------------------------------- */
+
+        if (
+          typeof supabaseClient === "undefined" ||
+          !supabaseClient
+        ) {
+
+          throw new Error(
+            "Supabase client is not initialized."
+          );
+
+        }
+
+
+        /* -----------------------------------------
+           GET TESTIMONIALS
+        ----------------------------------------- */
+
+        const {
+          data: testimonials,
+          error
+        } = await supabaseClient
+          .from("testimonials")
+          .select("*");
+
+
+        /* -----------------------------------------
+           SUPABASE ERROR
+        ----------------------------------------- */
+
+        if (error) {
+
+          console.error(
+            "Supabase testimonials error:",
+            error
+          );
+
+          throw error;
+
+        }
+
+
+        console.log(
+          "Testimonials received:",
+          testimonials
+        );
+
+
+        /* -----------------------------------------
+           EMPTY RESULT
+        ----------------------------------------- */
+
+        if (
+          !testimonials ||
+          testimonials.length === 0
+        ) {
+
+          el.innerHTML = `
+
+            <div
+              class="empty-state"
+              style="grid-column:1/-1;"
+            >
+
+              <div class="icon">
+                💬
+              </div>
+
+              <h3 class="h3 mb-1">
+                No testimonials yet
+              </h3>
+
+              <p class="text-sm text-muted">
+                Community testimonials will appear here.
+              </p>
+
+            </div>
+
+          `;
+
+          return;
+
+        }
+
+
+        /* -----------------------------------------
+           DISPLAY TESTIMONIALS
+        ----------------------------------------- */
+
+        el.innerHTML = testimonials
+          .map(t => {
+
+            const name =
+              t.name ||
+              t.author ||
+              t.full_name ||
+              "Community Member";
+
+
+            const role =
+              t.role ||
+              t.position ||
+              t.title ||
+              "";
+
+
+            const quote =
+              t.quote ||
+              t.message ||
+              t.content ||
+              t.testimonial ||
+              "";
+
+
+            return `
+
+              <div
+                class="card"
+                style="
+                  height:100%;
+                  padding:24px;
+                "
+              >
+
+                <!-- QUOTE -->
+
+                <div
+                  style="
+                    font-size:32px;
+                    line-height:1;
+                    margin-bottom:12px;
+                    color:var(--primary);
+                  "
+                >
+                  “
+                </div>
+
+
+                <!-- TESTIMONIAL -->
+
+                <p
+                  class="text-sm mb-4"
+                  style="
+                    line-height:1.7;
+                  "
+                >
+                  "${esc(quote)}"
+                </p>
+
+
+                <!-- NAME -->
+
+                <div
+                  class="text-sm"
+                  style="font-weight:600;"
+                >
+                  ${esc(name)}
+                </div>
+
+
+                <!-- ROLE -->
+
+                ${
+                  role
+                    ? `
+                      <div class="text-xs text-muted">
+                        ${esc(role)}
+                      </div>
+                    `
+                    : ""
+                }
+
+              </div>
+
+            `;
+
+          })
+          .join("");
+
+
+      } catch (error) {
+
+        console.error(
+          "Failed to load testimonials:",
+          error
+        );
+
+
+        el.innerHTML = `
+
+          <div
+            class="empty-state"
+            style="grid-column:1/-1;"
+          >
+
+            <div class="icon">
+              ⚠️
+            </div>
+
+            <h3 class="h3 mb-1">
+              Couldn't load testimonials
+            </h3>
+
+            <p class="text-sm text-muted">
+              ${esc(
+                error?.message ||
+                "Unable to load testimonials from Supabase."
+              )}
+            </p>
+
+          </div>
+
+        `;
+
+      }
+
     }
-    document.addEventListener("DOMContentLoaded", () => { loadContributors(); loadTestimonials(); });
+
+
+
+    /* =========================================
+       PAGE INITIALIZATION
+    ========================================= */
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      function () {
+
+        console.log(
+          "DragonByte Community page loaded."
+        );
+
+
+        loadContributors();
+
+        loadTestimonials();
+
+      }
+    );
+
   </script>
+
 </body>
+
 </html>
