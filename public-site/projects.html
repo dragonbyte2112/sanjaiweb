@@ -52,16 +52,22 @@
   <!-- Supabase library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Your Supabase connection -->
-  <script src="/assets/js/supabase.js"></script>
+ <script src="/assets/js/supabase.js"></script>
+<script src="/assets/js/layout.js"></script>
 
-  <!-- Header / Footer -->
-  <script src="/assets/js/layout.js"></script>
+<script>
+function esc(str) {
+  if (str === null || str === undefined) return "";
 
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-  <script>
-
-    async function loadProjects() {
+async function loadProjects() {
 
       const el = document.getElementById("projects-list");
 
