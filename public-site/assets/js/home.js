@@ -5,7 +5,11 @@ function emptyState(icon, title, desc) {
 async function loadEvents() {
   const el = document.getElementById("home-events");
   try {
-    const events = await Api.get("/events");
+   const { data: events, error } = await supabaseClient
+  .from("events")
+  .select("*");
+
+if (error) throw error; 
     if (!events.length) {
       el.innerHTML = emptyState("📅", "No upcoming events yet", "Check back soon — new events are added regularly.");
       return;
@@ -31,7 +35,11 @@ async function loadEvents() {
 async function loadProjects() {
   const el = document.getElementById("home-projects");
   try {
-    const projects = await Api.get("/projects");
+  const { data: projects, error } = await supabaseClient
+  .from("projects")
+  .select("*");
+
+if (error) throw error;  
     if (!projects.length) {
       el.innerHTML = emptyState("🔧", "No projects yet", "Community projects will show up here as they're published.");
       return;
@@ -55,7 +63,11 @@ async function loadProjects() {
 async function loadContributors() {
   const el = document.getElementById("home-contributors");
   try {
-    const contributors = await Api.get("/contributors");
+    const { data: contributors, error } = await supabaseClient
+  .from("contributors")
+  .select("*");
+
+if (error) throw error;
     const featured = contributors.filter((c) => c.featured);
     const list = featured.length ? featured : contributors;
     if (!list.length) {
@@ -79,7 +91,11 @@ async function loadContributors() {
 }
 
 async function loadTestimonials() {
-  const el = document.getElementById("home-testimonials");
+  const { data: testimonials, error } = await supabaseClient
+  .from("testimonials")
+  .select("*");
+
+if (error) throw error;
   try {
     const testimonials = await Api.get("/testimonials");
     if (!testimonials.length) {
