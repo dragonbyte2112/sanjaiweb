@@ -25,13 +25,18 @@
   </main>
   <div id="site-footer"></div>
 
-  <script src="/assets/js/api.js"></script>
-  <script src="/assets/js/layout.js"></script>
-  <script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/js/supabase.js"></script>
+<script src="/assets/js/layout.js"></script>
+<script>
     async function loadProjects() {
       const el = document.getElementById("projects-list");
       try {
-        const projects = await Api.get("/projects");
+        const { data: projects, error } = await supabaseClient
+  .from("projects")
+  .select("*");
+
+if (error) throw error;
         if (!projects.length) {
           el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
             <div class="icon">🔧</div>
