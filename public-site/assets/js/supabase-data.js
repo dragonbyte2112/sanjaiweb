@@ -1,103 +1,150 @@
-// DragonByte Supabase Data Helpers
+// /assets/js/supabase-data.js
 
-function esc(str) {
-  if (str === null || str === undefined) return "";
+(function () {
+  "use strict";
 
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-// ===============================
-// EVENTS
-// ===============================
-
-async function getEvents() {
-  const { data, error } = await supabaseClient
-    .from("events")
-    .select("*")
-    .order("date", { ascending: true });
-
-  if (error) {
-    console.error("Supabase events error:", error);
-    throw error;
+  if (!window.supabaseClient) {
+    console.error("Supabase client not found.");
+    return;
   }
 
-  return data || [];
-}
+  const client = window.supabaseClient;
 
+  function normalize(row) {
+    if (!row) return row;
 
-// ===============================
-// MEMBERS / CONTRIBUTORS
-// ===============================
+    return {
+      ...row,
 
-async function getMembers() {
-  const { data, error } = await supabaseClient
-    .from("contributors")
-    .select("*");
+      // Support both camelCase and snake_case database columns
+      registrationUrl:
+        row.registrationUrl ??
+        row.registration_url ??
+        "",
 
-  if (error) {
-    console.error("Supabase contributors error:", error);
-    throw error;
+      githubUrl:
+        row.githubUrl ??
+        row.github_url ??
+        "",
+
+      demoUrl:
+        row.demoUrl ??
+        row.demo_url ??
+        "",
+
+      resourceUrl:
+        row.resourceUrl ??
+        row.resource_url ??
+        "",
+
+      profileUrl:
+        row.profileUrl ??
+        row.profile_url ??
+        "",
+
+      imageUrl:
+        row.imageUrl ??
+        row.image_url ??
+        "",
+
+      technologies:
+        Array.isArray(row.technologies)
+          ? row.technologies
+          : []
+    };
   }
 
-  return data || [];
-}
+  async function getTable(table, options = {}) {
+    let query = client.from(table).select("*");
 
+    if (options.orderBy) {
+      query = query.order(
+        options.orderBy,
+        {
+          ascending:
+            options.ascending !== undefined
+              ? options.ascending
+              : false
+        }
+      );
+    }
 
-// ===============================
-// FEATURED MEMBERS
-// ===============================
+    if (options.limit) {
+      query = query.limit(options.limit);
+    }
 
-async function getFeaturedMembers() {
-  const { data, error } = await supabaseClient
-    .from("contributors")
-    .select("*")
-    .eq("featured", true);
+    const { data, error } = await query;
 
-  if (error) {
-    console.error("Supabase featured members error:", error);
-    throw error;
+    if (error) {
+      console.error(`Supabase error [${table}]:`, error);
+      throw error;
+    }
+
+    return (data || []).map(normalize);
   }
 
-  return data || [];
-}
-
-
-// ===============================
-// TESTIMONIALS
-// ===============================
-
-async function getTestimonials() {
-  const { data, error } = await supabaseClient
-    .from("testimonials")
-    .select("*");
-
-  if (error) {
-    console.error("Supabase testimonials error:", error);
-    throw error;
+  // EVENTS
+  async function getEvents(limit = null) {
+    return getTable("events", {
+      orderBy: "date",
+      ascending: true,
+      limit
+    });
   }
 
-  return data || [];
-}
-
-
-// ===============================
-// PROJECTS
-// ===============================
-
-async function getProjects() {
-  const { data, error } = await supabaseClient
-    .from("projects")
-    .select("*");
-
-  if (error) {
-    console.error("Supabase projects error:", error);
-    throw error;
+  // PROJECTS
+  async function getProjects(limit = null) {
+    return getTable("projects", {
+      orderBy: "created_at",
+      ascending: false,
+      limit
+    });
   }
 
-  return data || [];
-}
+  // CONTRIBUTORS
+  async function getContributors(limit = null) {
+    return getTable("contributors", {
+      orderBy: "created_at",
+      ascending: false,
+      limit
+    });
+  }
+
+  // TESTIMONIALS
+  async function getTestimonials(limit = null) {
+    return getTable("testimonials", {
+      orderBy: "created_at",
+      ascending: false,
+      limit
+    });
+  }
+
+  // MEMBERS
+  async function getMembers(limit = null) {
+    return getTable("members", {
+      orderBy: "created_at",
+      ascending: false,
+      limit
+    });
+  }
+
+  // TEAMS
+  async function getTeams(limit = null) {
+    return getTable("teams", {
+      orderBy: "created_at",
+      ascending: false,
+      limit
+    });
+  }
+
+  window.DragonByteData = {
+    getEvents,
+    getProjects,
+    getContributors,
+    getTestimonials,
+    getMembers,
+    getTeams
+  };
+
+  console.log("DragonByte Supabase data layer loaded.");
+})();
