@@ -25,13 +25,16 @@
   </main>
   <div id="site-footer"></div>
 
-  <script src="/assets/js/api.js"></script>
-  <script src="/assets/js/layout.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/js/supabase.js"></script>
+<script src="/assets/js/supabase-data.js"></script>
+<script src="/assets/js/layout.js"></script>
+
   <script>
     async function loadEvents() {
       const el = document.getElementById("events-list");
       try {
-        const events = await Api.get("/events");
+        const events = await getEvents();
         if (!events.length) {
           el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
             <div class="icon">📅</div>
