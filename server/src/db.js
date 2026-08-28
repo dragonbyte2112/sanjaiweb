@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { supabase } from "./supabaseClient.js";
+import { supabase, isSupabaseConfigured } from "./supabaseClient.js";
 
 // Small id helper so we don't need an extra dependency.
 export function makeId() {
@@ -16,12 +16,31 @@ export function slugify(text) {
 }
 
 export async function initDb() {
-  // Seed the admin account once, on first run only.
-  const { data: existingAdmin, error: adminReadError } = await supabase
-    .from("admin")
-    .select("*")
-    .eq("id", "main")
-    .maybeSingle();
+  // Nothing to check yet — supabaseClient.js already logged clear setup
+  // instructions. Skip the network call entirely rather than attempting one
+  // that can only fail (or hang) against the placeholder URL.
+  if (!isSupabaseConfigured) return;
+
+  // Seed the admin account once, on first run only. A short timeout keeps
+  // this from hanging forever if Supabase is unreachable — the server (or
+  // Vercel function) already started/responded regardless of this check.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  let existingAdmin, adminReadError;
+  try {
+    const result = await supabase
+      .from("admin")
+      .select("*")
+      .eq("id", "main")
+      .abortSignal(controller.signal)
+      .maybeSingle();
+    existingAdmin = result.data;
+    adminReadError = result.error;
+  } catch (err) {
+    adminReadError = err;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (adminReadError) {
     console.error(
