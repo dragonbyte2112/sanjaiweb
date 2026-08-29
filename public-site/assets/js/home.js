@@ -2,6 +2,10 @@
 
 "use strict";
 
+// -------------------------------------
+// HTML ESCAPE
+// -------------------------------------
+
 function esc(value) {
   if (value === null || value === undefined) {
     return "";
@@ -15,7 +19,6 @@ function esc(value) {
     .replace(/'/g, "&#039;");
 }
 
-
 // -------------------------------------
 // EVENTS
 // -------------------------------------
@@ -26,9 +29,16 @@ async function loadHomeEvents() {
   if (!el) return;
 
   try {
-    const events = await DragonByteData.getEvents(3);
+    if (!window.Api || typeof window.Api.get !== "function") {
+      throw new Error("DragonByte API is not available.");
+    }
 
-    if (!events.length) {
+    const events = await window.Api.get("/events");
+    const limitedEvents = Array.isArray(events)
+      ? events.slice(0, 3)
+      : [];
+
+    if (!limitedEvents.length) {
       el.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1;">
           <div class="icon">📅</div>
@@ -41,61 +51,72 @@ async function loadHomeEvents() {
       return;
     }
 
-    el.innerHTML = events.map(event => `
-      <div class="card" style="padding:0; overflow:hidden;">
+    el.innerHTML = limitedEvents
+      .map(
+        (event) => `
+          <div class="card" style="padding:0; overflow:hidden;">
 
-        <div style="
-          height:150px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          background:linear-gradient(135deg,#eff6ff,#e0f2fe);
-          font-size:2.5rem;
-        ">
-          📅
-        </div>
+            <div style="
+              height:150px;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              background:linear-gradient(135deg,#eff6ff,#e0f2fe);
+              font-size:2.5rem;
+            ">
+              📅
+            </div>
 
-        <div style="padding:20px;">
+            <div style="padding:20px;">
 
-          <span class="badge badge-blue">
-            ${esc(event.category || "Event")}
-          </span>
+              <span class="badge badge-blue">
+                ${esc(event.category || "Event")}
+              </span>
 
-          <h3 class="h3 mt-2 mb-1">
-            ${esc(event.title)}
-          </h3>
+              <h3 class="h3 mt-2 mb-1">
+                ${esc(event.title || "Untitled Event")}
+              </h3>
 
-          <p class="text-sm text-muted mb-3">
-            ${esc(event.description || "")}
-          </p>
+              <p class="text-sm text-muted mb-3">
+                ${esc(event.description || "")}
+              </p>
 
-          <div class="text-xs text-muted mb-3">
-            📍 ${esc(event.location || "TBA")}
-            &nbsp;·&nbsp;
-            🗓 ${esc(event.date || "TBA")}
+              <div class="text-xs text-muted mb-3">
+                📍 ${esc(event.location || "TBA")}
+                &nbsp;·&nbsp;
+                🗓 ${esc(
+                  event.date ||
+                    event.eventDate ||
+                    event.event_date ||
+                    "TBA"
+                )}
+              </div>
+
+              ${
+                event.registrationUrl ||
+                event.registration_url
+                  ? `
+                    <a
+                      href="${esc(
+                        event.registrationUrl ||
+                          event.registration_url
+                      )}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn btn-primary btn-sm"
+                    >
+                      Register
+                    </a>
+                  `
+                  : ""
+              }
+
+            </div>
           </div>
-
-          ${
-            event.registrationUrl
-              ? `
-                <a
-                  href="${esc(event.registrationUrl)}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="btn btn-primary btn-sm"
-                >
-                  Register
-                </a>
-              `
-              : ""
-          }
-
-        </div>
-      </div>
-    `).join("");
-
+        `
+      )
+      .join("");
   } catch (error) {
-
     console.error("Home events error:", error);
 
     el.innerHTML = `
@@ -107,13 +128,12 @@ async function loadHomeEvents() {
         </h3>
 
         <p class="text-sm text-muted">
-          ${esc(error.message)}
+          ${esc(error?.message || "Unable to load events.")}
         </p>
       </div>
     `;
   }
 }
-
 
 // -------------------------------------
 // PROJECTS
@@ -125,11 +145,16 @@ async function loadHomeProjects() {
   if (!el) return;
 
   try {
+    if (!window.Api || typeof window.Api.get !== "function") {
+      throw new Error("DragonByte API is not available.");
+    }
 
-    const projects = await DragonByteData.getProjects(3);
+    const projects = await window.Api.get("/projects");
+    const limitedProjects = Array.isArray(projects)
+      ? projects.slice(0, 3)
+      : [];
 
-    if (!projects.length) {
-
+    if (!limitedProjects.length) {
       el.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1;">
           <div class="icon">🔧</div>
@@ -147,105 +172,114 @@ async function loadHomeProjects() {
       return;
     }
 
-    el.innerHTML = projects.map(project => `
+    el.innerHTML = limitedProjects
+      .map(
+        (project) => `
+          <div class="card" style="padding:0; overflow:hidden;">
 
-      <div class="card" style="padding:0; overflow:hidden;">
+            <div style="
+              height:150px;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              background:linear-gradient(135deg,#f0fdf4,#ecfeff);
+              font-size:2.5rem;
+            ">
+              🔧
+            </div>
 
-        <div style="
-          height:150px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          background:linear-gradient(135deg,#f0fdf4,#ecfeff);
-          font-size:2.5rem;
-        ">
-          🔧
-        </div>
+            <div style="padding:20px;">
 
-        <div style="padding:20px;">
+              <h3 class="h3 mb-1">
+                ${esc(project.name || project.title || "Untitled Project")}
+              </h3>
 
-          <h3 class="h3 mb-1">
-            ${esc(project.name)}
-          </h3>
+              <p class="text-sm text-muted mb-3">
+                ${esc(project.description || "")}
+              </p>
 
-          <p class="text-sm text-muted mb-3">
-            ${esc(project.description || "")}
-          </p>
+              ${
+                Array.isArray(project.technologies) &&
+                project.technologies.length
+                  ? `
+                    <div
+                      class="flex gap-2 mb-3"
+                      style="flex-wrap:wrap;"
+                    >
+                      ${project.technologies
+                        .slice(0, 3)
+                        .map(
+                          (tech) => `
+                            <span
+                              class="text-xs mono"
+                              style="
+                                color:#0891b2;
+                                background:#ecfeff;
+                                padding:2px 8px;
+                                border-radius:6px;
+                              "
+                            >
+                              ${esc(tech)}
+                            </span>
+                          `
+                        )
+                        .join("")}
+                    </div>
+                  `
+                  : ""
+              }
 
-          ${
-            Array.isArray(project.technologies) &&
-            project.technologies.length
-              ? `
-                <div
-                  class="flex gap-2 mb-3"
-                  style="flex-wrap:wrap;"
-                >
-                  ${project.technologies
-                    .slice(0, 3)
-                    .map(tech => `
-                      <span
-                        class="text-xs mono"
-                        style="
-                          color:#0891b2;
-                          background:#ecfeff;
-                          padding:2px 8px;
-                          border-radius:6px;
-                        "
+              <div
+                class="flex gap-2"
+                style="flex-wrap:wrap;"
+              >
+
+                ${
+                  project.githubUrl ||
+                  project.github_url
+                    ? `
+                      <a
+                        href="${esc(
+                          project.githubUrl ||
+                            project.github_url
+                        )}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-outline btn-sm"
                       >
-                        ${esc(tech)}
-                      </span>
-                    `)
-                    .join("")}
-                </div>
-              `
-              : ""
-          }
+                        GitHub
+                      </a>
+                    `
+                    : ""
+                }
 
-          <div
-            class="flex gap-2"
-            style="flex-wrap:wrap;"
-          >
+                ${
+                  project.demoUrl ||
+                  project.demo_url
+                    ? `
+                      <a
+                        href="${esc(
+                          project.demoUrl ||
+                            project.demo_url
+                        )}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-primary btn-sm"
+                      >
+                        Live Demo
+                      </a>
+                    `
+                    : ""
+                }
 
-            ${
-              project.githubUrl
-                ? `
-                  <a
-                    href="${esc(project.githubUrl)}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn btn-outline btn-sm"
-                  >
-                    GitHub
-                  </a>
-                `
-                : ""
-            }
+              </div>
 
-            ${
-              project.demoUrl
-                ? `
-                  <a
-                    href="${esc(project.demoUrl)}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn btn-primary btn-sm"
-                  >
-                    Live Demo
-                  </a>
-                `
-                : ""
-            }
-
+            </div>
           </div>
-
-        </div>
-
-      </div>
-
-    `).join("");
-
+        `
+      )
+      .join("");
   } catch (error) {
-
     console.error("Home projects error:", error);
 
     el.innerHTML = `
@@ -257,31 +291,33 @@ async function loadHomeProjects() {
         </h3>
 
         <p class="text-sm text-muted">
-          ${esc(error.message)}
+          ${esc(error?.message || "Unable to load projects.")}
         </p>
       </div>
     `;
   }
 }
 
-
 // -------------------------------------
 // CONTRIBUTORS
 // -------------------------------------
 
 async function loadHomeContributors() {
-
   const el = document.getElementById("home-contributors");
 
   if (!el) return;
 
   try {
+    if (!window.Api || typeof window.Api.get !== "function") {
+      throw new Error("DragonByte API is not available.");
+    }
 
-    const contributors =
-      await DragonByteData.getContributors(3);
+    const contributors = await window.Api.get("/contributors");
+    const limitedContributors = Array.isArray(contributors)
+      ? contributors.slice(0, 3)
+      : [];
 
-    if (!contributors.length) {
-
+    if (!limitedContributors.length) {
       el.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1;">
           <div class="icon">👥</div>
@@ -299,63 +335,67 @@ async function loadHomeContributors() {
       return;
     }
 
-    el.innerHTML = contributors.map(member => `
+    el.innerHTML = limitedContributors
+      .map(
+        (member) => `
+          <div class="card text-center">
 
-      <div class="card text-center">
+            ${
+              member.imageUrl ||
+              member.image_url
+                ? `
+                  <img
+                    src="${esc(
+                      member.imageUrl ||
+                        member.image_url
+                    )}"
+                    alt="${esc(member.name || "Member")}"
+                    style="
+                      width:80px;
+                      height:80px;
+                      border-radius:50%;
+                      object-fit:cover;
+                      margin:0 auto 15px;
+                    "
+                  >
+                `
+                : `
+                  <div style="
+                    width:80px;
+                    height:80px;
+                    border-radius:50%;
+                    margin:0 auto 15px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    background:#eff6ff;
+                    font-size:2rem;
+                  ">
+                    👤
+                  </div>
+                `
+            }
 
-        ${
-          member.imageUrl
-            ? `
-              <img
-                src="${esc(member.imageUrl)}"
-                alt="${esc(member.name)}"
-                style="
-                  width:80px;
-                  height:80px;
-                  border-radius:50%;
-                  object-fit:cover;
-                  margin:0 auto 15px;
-                "
-              >
-            `
-            : `
-              <div style="
-                width:80px;
-                height:80px;
-                border-radius:50%;
-                margin:0 auto 15px;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                background:#eff6ff;
-                font-size:2rem;
-              ">
-                👤
-              </div>
-            `
-        }
+            <h3 class="h3 mb-1">
+              ${esc(member.name || "Member")}
+            </h3>
 
-        <h3 class="h3 mb-1">
-          ${esc(member.name)}
-        </h3>
+            <p
+              class="text-sm"
+              style="color:var(--primary);"
+            >
+              ${esc(member.role || "")}
+            </p>
 
-        <p
-          class="text-sm"
-          style="color:var(--primary);"
-        >
-          ${esc(member.role || "")}
-        </p>
+            <p class="text-sm text-muted mt-2">
+              ${esc(member.bio || "")}
+            </p>
 
-        <p class="text-sm text-muted mt-2">
-          ${esc(member.bio || "")}
-        </p>
-
-      </div>
-
-    `).join("");
-
+          </div>
+        `
+      )
+      .join("");
   } catch (error) {
-
     console.error("Home contributors error:", error);
 
     el.innerHTML = `
@@ -367,31 +407,33 @@ async function loadHomeContributors() {
         </h3>
 
         <p class="text-sm text-muted">
-          ${esc(error.message)}
+          ${esc(error?.message || "Unable to load members.")}
         </p>
       </div>
     `;
   }
 }
 
-
 // -------------------------------------
 // TESTIMONIALS
 // -------------------------------------
 
 async function loadHomeTestimonials() {
-
   const el = document.getElementById("home-testimonials");
 
   if (!el) return;
 
   try {
+    if (!window.Api || typeof window.Api.get !== "function") {
+      throw new Error("DragonByte API is not available.");
+    }
 
-    const testimonials =
-      await DragonByteData.getTestimonials(3);
+    const testimonials = await window.Api.get("/testimonials");
+    const limitedTestimonials = Array.isArray(testimonials)
+      ? testimonials.slice(0, 3)
+      : [];
 
-    if (!testimonials.length) {
-
+    if (!limitedTestimonials.length) {
       el.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1;">
           <div class="icon">💬</div>
@@ -409,31 +451,36 @@ async function loadHomeTestimonials() {
       return;
     }
 
-    el.innerHTML = testimonials.map(item => `
+    el.innerHTML = limitedTestimonials
+      .map(
+        (item) => `
+          <div class="card">
 
-      <div class="card">
+            <p class="text-sm mb-3">
+              "${esc(
+                item.quote ||
+                  item.message ||
+                  item.content ||
+                  ""
+              )}"
+            </p>
 
-        <p class="text-sm mb-3">
-          "${esc(item.quote)}"
-        </p>
+            <div
+              class="text-sm"
+              style="font-weight:600;"
+            >
+              ${esc(item.name || "Anonymous")}
+            </div>
 
-        <div
-          class="text-sm"
-          style="font-weight:600;"
-        >
-          ${esc(item.name)}
-        </div>
+            <div class="text-xs text-muted">
+              ${esc(item.role || "")}
+            </div>
 
-        <div class="text-xs text-muted">
-          ${esc(item.role || "")}
-        </div>
-
-      </div>
-
-    `).join("");
-
+          </div>
+        `
+      )
+      .join("");
   } catch (error) {
-
     console.error("Home testimonials error:", error);
 
     el.innerHTML = `
@@ -445,26 +492,23 @@ async function loadHomeTestimonials() {
         </h3>
 
         <p class="text-sm text-muted">
-          ${esc(error.message)}
+          ${esc(
+            error?.message ||
+              "Unable to load testimonials."
+          )}
         </p>
       </div>
     `;
   }
 }
 
-
 // -------------------------------------
 // START
 // -------------------------------------
 
-document.addEventListener("DOMContentLoaded", () => {
-
+document.addEventListener("DOMContentLoaded", function () {
   loadHomeEvents();
-
   loadHomeProjects();
-
   loadHomeContributors();
-
   loadHomeTestimonials();
-
 });
