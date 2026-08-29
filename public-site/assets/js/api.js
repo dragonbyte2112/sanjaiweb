@@ -70,6 +70,22 @@
       coverPhoto: "cover_photo",
       coverImage: "cover_image",
       imageUrl: "image_url"
+    },
+
+    contributors: {
+      imageUrl: "image_url"
+    },
+
+    testimonials: {
+      imageUrl: "image_url"
+    },
+
+    members: {
+      imageUrl: "image_url"
+    },
+
+    teams: {
+      imageUrl: "image_url"
     }
   };
 
@@ -218,7 +234,10 @@
     if (parts.length >= 2) {
       const last = parts[parts.length - 1];
 
-      if (last !== "admin" && last !== "all") {
+      if (
+        last !== "admin" &&
+        last !== "all"
+      ) {
         return last;
       }
     }
@@ -240,7 +259,10 @@
       throw new Error(error.message);
     }
 
-    throw error || new Error(`DragonByte API ${operation} failed.`);
+    throw (
+      error ||
+      new Error(`DragonByte API ${operation} failed.`)
+    );
   }
 
   // =====================================================
@@ -248,24 +270,41 @@
   // =====================================================
 
   async function getSession() {
-    const { data, error } = await client.auth.getSession();
+    try {
+      const { data, error } =
+        await client.auth.getSession();
 
-    if (error) {
-      console.error("DragonByte session error:", error);
+      if (error) {
+        console.error(
+          "DragonByte session error:",
+          error
+        );
+        return null;
+      }
+
+      return data?.session || null;
+    } catch (error) {
+      console.error(
+        "DragonByte session exception:",
+        error
+      );
       return null;
     }
-
-    return data?.session || null;
   }
 
   async function getUser() {
-    const { data, error } = await client.auth.getUser();
+    try {
+      const { data, error } =
+        await client.auth.getUser();
 
-    if (error) {
+      if (error) {
+        return null;
+      }
+
+      return data?.user || null;
+    } catch (error) {
       return null;
     }
-
-    return data?.user || null;
   }
 
   // =====================================================
@@ -283,7 +322,9 @@
 
       console.log(
         "DragonByte API initialized:",
-        session ? "Authenticated" : "Guest"
+        session
+          ? "Authenticated"
+          : "Guest"
       );
 
       return !!session;
@@ -297,32 +338,49 @@
       try {
         path = normalizePath(path);
 
-        // Admin statistics
+        // ===============================================
+        // ADMIN STATISTICS
+        // ===============================================
+
         if (path === "/admin/stats") {
           return await this.getAdminStats();
         }
 
-        // CTF leaderboard
+        // ===============================================
+        // CTF LEADERBOARD
+        // ===============================================
+
         if (path === "/ctf/leaderboard") {
-          const { data, error } = await client
-            .from("leaderboard")
-            .select("*");
+          const { data, error } =
+            await client
+              .from("leaderboard")
+              .select("*");
 
           if (error) {
-            handleError("GET leaderboard", error);
+            handleError(
+              "GET leaderboard",
+              error
+            );
           }
 
           return data || [];
         }
 
-        // CTF statistics
+        // ===============================================
+        // CTF STATISTICS
+        // ===============================================
+
         if (path === "/ctf/stats") {
-          const { data, error } = await client
-            .from("challenges")
-            .select("*");
+          const { data, error } =
+            await client
+              .from("challenges")
+              .select("*");
 
           if (error) {
-            handleError("GET CTF stats", error);
+            handleError(
+              "GET CTF stats",
+              error
+            );
           }
 
           const challenges = data || [];
@@ -332,17 +390,27 @@
 
             categories: new Set(
               challenges
-                .map((item) => item.category)
+                .map(
+                  (item) => item.category
+                )
                 .filter(Boolean)
             ).size,
 
-            totalPoints: challenges.reduce(
-              (sum, item) =>
-                sum + Number(item.points || 0),
-              0
-            )
+            totalPoints:
+              challenges.reduce(
+                (sum, item) =>
+                  sum +
+                  Number(
+                    item.points || 0
+                  ),
+                0
+              )
           };
         }
+
+        // ===============================================
+        // RESOLVE TABLE
+        // ===============================================
 
         const table = resolveTable(path);
 
@@ -359,36 +427,56 @@
           table === "projects"
         ) {
           if (!path.includes("/admin")) {
-            query = query.eq("published", true);
+            query = query.eq(
+              "published",
+              true
+            );
           }
         }
 
         if (table === "testimonials") {
           if (!path.includes("/admin")) {
-            query = query.eq("approved", true);
+            query = query.eq(
+              "approved",
+              true
+            );
           }
         }
 
         // ===============================================
-        // ORDER
+        // IMPORTANT
+        // ===============================================
+        // DO NOT ORDER BY created_at.
+        //
+        // Your current Supabase tables do not contain
+        // created_at. Ordering by it causes:
+        //
+        // column projects.created_at does not exist
+        //
+        // Therefore the query is executed without
+        // created_at ordering.
         // ===============================================
 
-        // Most DragonByte tables use created_at.
-        // If your table doesn't have it, Supabase may
-        // return an error. This is handled below.
-        query = query.order("created_at", {
-          ascending: false
-        });
-
-        const { data, error } = await query;
+        const { data, error } =
+          await query;
 
         if (error) {
-          handleError("GET", error);
+          handleError(
+            "GET",
+            error
+          );
         }
 
-        return fromDbList(table, data);
+        return fromDbList(
+          table,
+          data
+        );
+
       } catch (error) {
-        handleError("GET", error);
+        handleError(
+          "GET",
+          error
+        );
       }
     },
 
@@ -398,25 +486,39 @@
 
     async getById(path, id) {
       try {
-        const table = resolveTable(path);
+        const table =
+          resolveTable(path);
 
         if (!id) {
-          throw new Error("Record ID is required.");
+          throw new Error(
+            "Record ID is required."
+          );
         }
 
-        const { data, error } = await client
-          .from(table)
-          .select("*")
-          .eq("id", id)
-          .maybeSingle();
+        const { data, error } =
+          await client
+            .from(table)
+            .select("*")
+            .eq("id", id)
+            .maybeSingle();
 
         if (error) {
-          handleError("GET BY ID", error);
+          handleError(
+            "GET BY ID",
+            error
+          );
         }
 
-        return fromDb(table, data);
+        return fromDb(
+          table,
+          data
+        );
+
       } catch (error) {
-        handleError("GET BY ID", error);
+        handleError(
+          "GET BY ID",
+          error
+        );
       }
     },
 
@@ -424,34 +526,54 @@
     // POST
     // ===================================================
 
-    async post(path, body = {}) {
+    async post(
+      path,
+      body = {}
+    ) {
       try {
-        path = normalizePath(path);
+        path =
+          normalizePath(path);
 
         // Change password
-        if (path === "/auth/change-password") {
+        if (
+          path ===
+          "/auth/change-password"
+        ) {
           return await this.changePassword(
             body.currentPassword,
             body.newPassword
           );
         }
 
-        const table = resolveTable(path);
+        const table =
+          resolveTable(path);
 
-        const dbBody = toDb(table, body);
+        const dbBody =
+          toDb(table, body);
 
-        const { data, error } = await client
-          .from(table)
-          .insert(dbBody)
-          .select();
+        const { data, error } =
+          await client
+            .from(table)
+            .insert(dbBody)
+            .select();
 
         if (error) {
-          handleError("POST", error);
+          handleError(
+            "POST",
+            error
+          );
         }
 
-        return fromDbList(table, data);
+        return fromDbList(
+          table,
+          data
+        );
+
       } catch (error) {
-        handleError("POST", error);
+        handleError(
+          "POST",
+          error
+        );
       }
     },
 
@@ -459,12 +581,19 @@
     // PUT
     // ===================================================
 
-    async put(path, body = {}) {
+    async put(
+      path,
+      body = {}
+    ) {
       try {
-        path = normalizePath(path);
+        path =
+          normalizePath(path);
 
-        const table = resolveTable(path);
-        const id = getIdFromPath(path);
+        const table =
+          resolveTable(path);
+
+        const id =
+          getIdFromPath(path);
 
         if (!id) {
           throw new Error(
@@ -478,24 +607,36 @@
 
         delete updateBody.id;
 
-        const dbBody = toDb(
-          table,
-          updateBody
-        );
+        const dbBody =
+          toDb(
+            table,
+            updateBody
+          );
 
-        const { data, error } = await client
-          .from(table)
-          .update(dbBody)
-          .eq("id", id)
-          .select();
+        const { data, error } =
+          await client
+            .from(table)
+            .update(dbBody)
+            .eq("id", id)
+            .select();
 
         if (error) {
-          handleError("PUT", error);
+          handleError(
+            "PUT",
+            error
+          );
         }
 
-        return fromDbList(table, data);
+        return fromDbList(
+          table,
+          data
+        );
+
       } catch (error) {
-        handleError("PUT", error);
+        handleError(
+          "PUT",
+          error
+        );
       }
     },
 
@@ -503,9 +644,14 @@
     // UPDATE
     // ===================================================
 
-    async update(path, id, body = {}) {
+    async update(
+      path,
+      id,
+      body = {}
+    ) {
       try {
-        const table = resolveTable(path);
+        const table =
+          resolveTable(path);
 
         if (!id) {
           throw new Error(
@@ -519,24 +665,36 @@
 
         delete updateBody.id;
 
-        const dbBody = toDb(
-          table,
-          updateBody
-        );
+        const dbBody =
+          toDb(
+            table,
+            updateBody
+          );
 
-        const { data, error } = await client
-          .from(table)
-          .update(dbBody)
-          .eq("id", id)
-          .select();
+        const { data, error } =
+          await client
+            .from(table)
+            .update(dbBody)
+            .eq("id", id)
+            .select();
 
         if (error) {
-          handleError("UPDATE", error);
+          handleError(
+            "UPDATE",
+            error
+          );
         }
 
-        return fromDbList(table, data);
+        return fromDbList(
+          table,
+          data
+        );
+
       } catch (error) {
-        handleError("UPDATE", error);
+        handleError(
+          "UPDATE",
+          error
+        );
       }
     },
 
@@ -544,14 +702,20 @@
     // DELETE
     // ===================================================
 
-    async del(path, id = null) {
+    async del(
+      path,
+      id = null
+    ) {
       try {
-        path = normalizePath(path);
+        path =
+          normalizePath(path);
 
-        const table = resolveTable(path);
+        const table =
+          resolveTable(path);
 
         const recordId =
-          id || getIdFromPath(path);
+          id ||
+          getIdFromPath(path);
 
         if (!recordId) {
           throw new Error(
@@ -559,19 +723,30 @@
           );
         }
 
-        const { data, error } = await client
-          .from(table)
-          .delete()
-          .eq("id", recordId)
-          .select();
+        const { data, error } =
+          await client
+            .from(table)
+            .delete()
+            .eq("id", recordId)
+            .select();
 
         if (error) {
-          handleError("DELETE", error);
+          handleError(
+            "DELETE",
+            error
+          );
         }
 
-        return fromDbList(table, data);
+        return fromDbList(
+          table,
+          data
+        );
+
       } catch (error) {
-        handleError("DELETE", error);
+        handleError(
+          "DELETE",
+          error
+        );
       }
     },
 
@@ -579,7 +754,10 @@
     // LOGIN
     // ===================================================
 
-    async login(email, password) {
+    async login(
+      email,
+      password
+    ) {
       if (!email || !password) {
         throw new Error(
           "Email and password are required."
@@ -587,13 +765,17 @@
       }
 
       const { data, error } =
-        await client.auth.signInWithPassword({
-          email: email.trim(),
-          password
-        });
+        await client.auth
+          .signInWithPassword({
+            email: email.trim(),
+            password
+          });
 
       if (error) {
-        handleError("LOGIN", error);
+        handleError(
+          "LOGIN",
+          error
+        );
       }
 
       return data;
@@ -603,7 +785,10 @@
     // REGISTER
     // ===================================================
 
-    async register(email, password) {
+    async register(
+      email,
+      password
+    ) {
       if (!email || !password) {
         throw new Error(
           "Email and password are required."
@@ -617,13 +802,17 @@
       }
 
       const { data, error } =
-        await client.auth.signUp({
-          email: email.trim(),
-          password
-        });
+        await client.auth
+          .signUp({
+            email: email.trim(),
+            password
+          });
 
       if (error) {
-        handleError("REGISTER", error);
+        handleError(
+          "REGISTER",
+          error
+        );
       }
 
       return data;
@@ -634,7 +823,8 @@
     // ===================================================
 
     async isAuthed() {
-      const session = await getSession();
+      const session =
+        await getSession();
 
       return !!session;
     },
@@ -664,7 +854,10 @@
         await client.auth.signOut();
 
       if (error) {
-        handleError("LOGOUT", error);
+        handleError(
+          "LOGOUT",
+          error
+        );
       }
 
       return true;
@@ -690,7 +883,8 @@
         );
       }
 
-      const user = await getUser();
+      const user =
+        await getUser();
 
       if (!user) {
         throw new Error(
@@ -704,10 +898,12 @@
         user.email
       ) {
         const { error } =
-          await client.auth.signInWithPassword({
-            email: user.email,
-            password: currentPassword
-          });
+          await client.auth
+            .signInWithPassword({
+              email: user.email,
+              password:
+                currentPassword
+            });
 
         if (error) {
           throw new Error(
@@ -717,9 +913,11 @@
       }
 
       const { data, error } =
-        await client.auth.updateUser({
-          password: newPassword
-        });
+        await client.auth
+          .updateUser({
+            password:
+              newPassword
+          });
 
       if (error) {
         handleError(
@@ -744,16 +942,22 @@
         testimonials: "testimonials",
         teams: "teams",
         challenges: "challenges",
-        joinRequests: "join_requests"
+        joinRequests:
+          "join_requests"
       };
 
       const result = {};
 
       await Promise.all(
-        Object.entries(tables).map(
+        Object.entries(
+          tables
+        ).map(
           async ([key, table]) => {
             try {
-              const { count, error } =
+              const {
+                count,
+                error
+              } =
                 await client
                   .from(table)
                   .select("*", {
@@ -769,8 +973,10 @@
 
                 result[key] = 0;
               } else {
-                result[key] = count || 0;
+                result[key] =
+                  count || 0;
               }
+
             } catch (error) {
               console.warn(
                 `DragonByte Stats Error: ${table}`,
@@ -792,7 +998,8 @@
 
     async refreshSession() {
       const { data, error } =
-        await client.auth.refreshSession();
+        await client.auth
+          .refreshSession();
 
       if (error) {
         handleError(
@@ -808,18 +1015,27 @@
     // AUTH STATE LISTENER
     // ===================================================
 
-    onAuthStateChange(callback) {
-      if (typeof callback !== "function") {
+    onAuthStateChange(
+      callback
+    ) {
+      if (
+        typeof callback !==
+        "function"
+      ) {
         throw new Error(
           "Auth callback must be a function."
         );
       }
 
-      return client.auth.onAuthStateChange(
-        (event, session) => {
-          callback(event, session);
-        }
-      );
+      return client.auth
+        .onAuthStateChange(
+          (event, session) => {
+            callback(
+              event,
+              session
+            );
+          }
+        );
     }
   };
 
@@ -830,10 +1046,241 @@
   window.Api = Api;
 
   // =====================================================
+  // DRAGONBYTE DATA
+  // Compatibility layer for existing home.js
+  // =====================================================
+
+  window.DragonByteData = {
+
+    // ===============================================
+    // EVENTS
+    // ===============================================
+
+    async getEvents(limit = 10) {
+      const data =
+        await window.Api.get(
+          "/events"
+        );
+
+      return Array.isArray(data)
+        ? data.slice(0, limit)
+        : [];
+    },
+
+    // ===============================================
+    // PROJECTS
+    // ===============================================
+
+    async getProjects(limit = 10) {
+      const data =
+        await window.Api.get(
+          "/projects"
+        );
+
+      return Array.isArray(data)
+        ? data.slice(0, limit)
+        : [];
+    },
+
+    // ===============================================
+    // CONTRIBUTORS
+    // ===============================================
+
+    async getContributors(
+      limit = 10
+    ) {
+      const data =
+        await window.Api.get(
+          "/contributors"
+        );
+
+      return Array.isArray(data)
+        ? data.slice(0, limit)
+        : [];
+    },
+
+    // ===============================================
+    // TESTIMONIALS
+    // ===============================================
+
+    async getTestimonials(
+      limit = 10
+    ) {
+      const data =
+        await window.Api.get(
+          "/testimonials"
+        );
+
+      return Array.isArray(data)
+        ? data.slice(0, limit)
+        : [];
+    },
+
+    // ===============================================
+    // TEAMS
+    // ===============================================
+
+    async getTeams(limit = 10) {
+      const data =
+        await window.Api.get(
+          "/teams"
+        );
+
+      return Array.isArray(data)
+        ? data.slice(0, limit)
+        : [];
+    },
+
+    // ===============================================
+    // MEMBERS
+    // ===============================================
+
+    async getMembers(limit = 10) {
+      const data =
+        await window.Api.get(
+          "/members"
+        );
+
+      return Array.isArray(data)
+        ? data.slice(0, limit)
+        : [];
+    },
+
+    // ===============================================
+    // BLOGS
+    // ===============================================
+
+    async getBlogs(limit = 10) {
+      const data =
+        await window.Api.get(
+          "/blogs"
+        );
+
+      return Array.isArray(data)
+        ? data.slice(0, limit)
+        : [];
+    },
+
+    // ===============================================
+    // RESOURCES
+    // ===============================================
+
+    async getResources(limit = 10) {
+      const data =
+        await window.Api.get(
+          "/resources"
+        );
+
+      return Array.isArray(data)
+        ? data.slice(0, limit)
+        : [];
+    },
+
+    // ===============================================
+    // WORKSHOPS
+    // ===============================================
+
+    async getWorkshops(limit = 10) {
+      const data =
+        await window.Api.get(
+          "/workshops"
+        );
+
+      return Array.isArray(data)
+        ? data.slice(0, limit)
+        : [];
+    },
+
+    // ===============================================
+    // CTF CHALLENGES
+    // ===============================================
+
+    async getChallenges(limit = 100) {
+      const data =
+        await window.Api.get(
+          "/ctf/challenges"
+        );
+
+      return Array.isArray(data)
+        ? data.slice(0, limit)
+        : [];
+    },
+
+    // ===============================================
+    // GENERIC GET
+    // ===============================================
+
+    async get(path) {
+      return await window.Api.get(
+        path
+      );
+    },
+
+    // ===============================================
+    // GENERIC GET BY ID
+    // ===============================================
+
+    async getById(
+      path,
+      id
+    ) {
+      return await window.Api.getById(
+        path,
+        id
+      );
+    },
+
+    // ===============================================
+    // GENERIC POST
+    // ===============================================
+
+    async post(
+      path,
+      body = {}
+    ) {
+      return await window.Api.post(
+        path,
+        body
+      );
+    },
+
+    // ===============================================
+    // GENERIC UPDATE
+    // ===============================================
+
+    async update(
+      path,
+      id,
+      body = {}
+    ) {
+      return await window.Api.update(
+        path,
+        id,
+        body
+      );
+    },
+
+    // ===============================================
+    // GENERIC DELETE
+    // ===============================================
+
+    async delete(
+      path,
+      id
+    ) {
+      return await window.Api.del(
+        path,
+        id
+      );
+    }
+  };
+
+  // =====================================================
   // GLOBAL TABLE MAP
   // =====================================================
 
-  window.API_TABLES = API_TABLES;
+  window.API_TABLES =
+    API_TABLES;
 
   // =====================================================
   // HTML ESCAPE
@@ -848,11 +1295,26 @@
     }
 
     return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+      .replace(
+        /&/g,
+        "&amp;"
+      )
+      .replace(
+        /</g,
+        "&lt;"
+      )
+      .replace(
+        />/g,
+        "&gt;"
+      )
+      .replace(
+        /"/g,
+        "&quot;"
+      )
+      .replace(
+        /'/g,
+        "&#039;"
+      );
   };
 
   // =====================================================
@@ -861,6 +1323,10 @@
 
   console.log(
     "DragonByte API loaded successfully."
+  );
+
+  console.log(
+    "DragonByteData compatibility layer ready."
   );
 
 })();
