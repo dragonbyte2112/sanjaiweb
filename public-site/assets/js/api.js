@@ -16,8 +16,15 @@
     console.error(
       "DragonByte API Error: window.supabaseClient is not available."
     );
+
+    // Still expose empty objects so other scripts don't crash
+    window.Api = null;
+    window.DragonByteData = null;
+
     return;
   }
+
+  console.log("DragonByte: Supabase client detected.");
 
   // =====================================================
   // TABLE MAP
@@ -51,7 +58,6 @@
 
   // =====================================================
   // FIELD MAP
-  // JavaScript -> Supabase
   // =====================================================
 
   const FIELD_MAP = {
@@ -77,14 +83,6 @@
     },
 
     testimonials: {
-      imageUrl: "image_url"
-    },
-
-    members: {
-      imageUrl: "image_url"
-    },
-
-    teams: {
       imageUrl: "image_url"
     }
   };
@@ -166,7 +164,9 @@
   }
 
   function fromDbList(table, rows) {
-    return (rows || []).map((row) => fromDb(table, row));
+    return (rows || []).map(function (row) {
+      return fromDb(table, row);
+    });
   }
 
   // =====================================================
@@ -251,7 +251,7 @@
 
   function handleError(operation, error) {
     console.error(
-      `DragonByte API ${operation} Error:`,
+      "DragonByte API " + operation + " Error:",
       error
     );
 
@@ -259,9 +259,8 @@
       throw new Error(error.message);
     }
 
-    throw (
-      error ||
-      new Error(`DragonByte API ${operation} failed.`)
+    throw error || new Error(
+      "DragonByte API " + operation + " failed."
     );
   }
 
@@ -270,41 +269,34 @@
   // =====================================================
 
   async function getSession() {
-    try {
-      const { data, error } =
-        await client.auth.getSession();
+    const result = await client.auth.getSession();
 
-      if (error) {
-        console.error(
-          "DragonByte session error:",
-          error
-        );
-        return null;
-      }
-
-      return data?.session || null;
-    } catch (error) {
+    if (result.error) {
       console.error(
-        "DragonByte session exception:",
-        error
+        "DragonByte session error:",
+        result.error
       );
+
       return null;
     }
+
+    return result.data &&
+      result.data.session
+      ? result.data.session
+      : null;
   }
 
   async function getUser() {
-    try {
-      const { data, error } =
-        await client.auth.getUser();
+    const result = await client.auth.getUser();
 
-      if (error) {
-        return null;
-      }
-
-      return data?.user || null;
-    } catch (error) {
+    if (result.error) {
       return null;
     }
+
+    return result.data &&
+      result.data.user
+      ? result.data.user
+      : null;
   }
 
   // =====================================================
@@ -322,9 +314,7 @@
 
       console.log(
         "DragonByte API initialized:",
-        session
-          ? "Authenticated"
-          : "Guest"
+        session ? "Authenticated" : "Guest"
       );
 
       return !!session;
@@ -338,79 +328,76 @@
       try {
         path = normalizePath(path);
 
-        // ===============================================
-        // ADMIN STATISTICS
-        // ===============================================
+        // -----------------------------------------------
+        // ADMIN STATS
+        // -----------------------------------------------
 
         if (path === "/admin/stats") {
           return await this.getAdminStats();
         }
 
-        // ===============================================
+        // -----------------------------------------------
         // CTF LEADERBOARD
-        // ===============================================
+        // -----------------------------------------------
 
         if (path === "/ctf/leaderboard") {
-          const { data, error } =
-            await client
-              .from("leaderboard")
-              .select("*");
+          const result = await client
+            .from("leaderboard")
+            .select("*");
 
-          if (error) {
+          if (result.error) {
             handleError(
               "GET leaderboard",
-              error
+              result.error
             );
           }
 
-          return data || [];
+          return result.data || [];
         }
 
-        // ===============================================
-        // CTF STATISTICS
-        // ===============================================
+        // -----------------------------------------------
+        // CTF STATS
+        // -----------------------------------------------
 
         if (path === "/ctf/stats") {
-          const { data, error } =
-            await client
-              .from("challenges")
-              .select("*");
+          const result = await client
+            .from("challenges")
+            .select("*");
 
-          if (error) {
+          if (result.error) {
             handleError(
               "GET CTF stats",
-              error
+              result.error
             );
           }
 
-          const challenges = data || [];
+          const challenges = result.data || [];
 
           return {
             challenges: challenges.length,
 
             categories: new Set(
               challenges
-                .map(
-                  (item) => item.category
-                )
+                .map(function (item) {
+                  return item.category;
+                })
                 .filter(Boolean)
             ).size,
 
-            totalPoints:
-              challenges.reduce(
-                (sum, item) =>
-                  sum +
-                  Number(
-                    item.points || 0
-                  ),
-                0
-              )
+            totalPoints: challenges.reduce(
+              function (sum, item) {
+                return sum + Number(
+                  item.points || 0
+                );
+              },
+              0
+            )
           };
         }
 
-        // ===============================================
-        // RESOLVE TABLE
-        // ===============================================
+        // -----------------------------------------------
+        // NORMAL TABLE
+        // -----------------------------------------------
 
         const table = resolveTable(path);
 
@@ -418,9 +405,9 @@
           .from(table)
           .select("*");
 
-        // ===============================================
+        // -----------------------------------------------
         // PUBLIC FILTERS
-        // ===============================================
+        // -----------------------------------------------
 
         if (
           table === "events" ||
@@ -443,33 +430,30 @@
           }
         }
 
-        // ===============================================
-        // IMPORTANT
-        // ===============================================
+        // IMPORTANT:
         // DO NOT ORDER BY created_at.
         //
-        // Your current Supabase tables do not contain
-        // created_at. Ordering by it causes:
+        // Your Supabase tables currently do not
+        // contain created_at.
         //
+        // This was causing:
         // column projects.created_at does not exist
-        //
-        // Therefore the query is executed without
-        // created_at ordering.
-        // ===============================================
+        // column contributors.created_at does not exist
+        // column testimonials.created_at does not exist
+        // column events.created_at does not exist
 
-        const { data, error } =
-          await query;
+        const result = await query;
 
-        if (error) {
+        if (result.error) {
           handleError(
             "GET",
-            error
+            result.error
           );
         }
 
         return fromDbList(
           table,
-          data
+          result.data
         );
 
       } catch (error) {
@@ -486,8 +470,7 @@
 
     async getById(path, id) {
       try {
-        const table =
-          resolveTable(path);
+        const table = resolveTable(path);
 
         if (!id) {
           throw new Error(
@@ -495,23 +478,22 @@
           );
         }
 
-        const { data, error } =
-          await client
-            .from(table)
-            .select("*")
-            .eq("id", id)
-            .maybeSingle();
+        const result = await client
+          .from(table)
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
 
-        if (error) {
+        if (result.error) {
           handleError(
             "GET BY ID",
-            error
+            result.error
           );
         }
 
         return fromDb(
           table,
-          data
+          result.data
         );
 
       } catch (error) {
@@ -526,13 +508,11 @@
     // POST
     // ===================================================
 
-    async post(
-      path,
-      body = {}
-    ) {
+    async post(path, body) {
       try {
-        path =
-          normalizePath(path);
+        path = normalizePath(path);
+
+        body = body || {};
 
         // Change password
         if (
@@ -545,28 +525,28 @@
           );
         }
 
-        const table =
-          resolveTable(path);
+        const table = resolveTable(path);
 
-        const dbBody =
-          toDb(table, body);
+        const dbBody = toDb(
+          table,
+          body
+        );
 
-        const { data, error } =
-          await client
-            .from(table)
-            .insert(dbBody)
-            .select();
+        const result = await client
+          .from(table)
+          .insert(dbBody)
+          .select();
 
-        if (error) {
+        if (result.error) {
           handleError(
             "POST",
-            error
+            result.error
           );
         }
 
         return fromDbList(
           table,
-          data
+          result.data
         );
 
       } catch (error) {
@@ -581,19 +561,14 @@
     // PUT
     // ===================================================
 
-    async put(
-      path,
-      body = {}
-    ) {
+    async put(path, body) {
       try {
-        path =
-          normalizePath(path);
+        path = normalizePath(path);
 
-        const table =
-          resolveTable(path);
+        body = body || {};
 
-        const id =
-          getIdFromPath(path);
+        const table = resolveTable(path);
+        const id = getIdFromPath(path);
 
         if (!id) {
           throw new Error(
@@ -607,29 +582,27 @@
 
         delete updateBody.id;
 
-        const dbBody =
-          toDb(
-            table,
-            updateBody
-          );
+        const dbBody = toDb(
+          table,
+          updateBody
+        );
 
-        const { data, error } =
-          await client
-            .from(table)
-            .update(dbBody)
-            .eq("id", id)
-            .select();
+        const result = await client
+          .from(table)
+          .update(dbBody)
+          .eq("id", id)
+          .select();
 
-        if (error) {
+        if (result.error) {
           handleError(
             "PUT",
-            error
+            result.error
           );
         }
 
         return fromDbList(
           table,
-          data
+          result.data
         );
 
       } catch (error) {
@@ -644,14 +617,9 @@
     // UPDATE
     // ===================================================
 
-    async update(
-      path,
-      id,
-      body = {}
-    ) {
+    async update(path, id, body) {
       try {
-        const table =
-          resolveTable(path);
+        const table = resolveTable(path);
 
         if (!id) {
           throw new Error(
@@ -659,35 +627,35 @@
           );
         }
 
+        body = body || {};
+
         const updateBody = {
           ...body
         };
 
         delete updateBody.id;
 
-        const dbBody =
-          toDb(
-            table,
-            updateBody
-          );
+        const dbBody = toDb(
+          table,
+          updateBody
+        );
 
-        const { data, error } =
-          await client
-            .from(table)
-            .update(dbBody)
-            .eq("id", id)
-            .select();
+        const result = await client
+          .from(table)
+          .update(dbBody)
+          .eq("id", id)
+          .select();
 
-        if (error) {
+        if (result.error) {
           handleError(
             "UPDATE",
-            error
+            result.error
           );
         }
 
         return fromDbList(
           table,
-          data
+          result.data
         );
 
       } catch (error) {
@@ -702,20 +670,14 @@
     // DELETE
     // ===================================================
 
-    async del(
-      path,
-      id = null
-    ) {
+    async del(path, id) {
       try {
-        path =
-          normalizePath(path);
+        path = normalizePath(path);
 
-        const table =
-          resolveTable(path);
+        const table = resolveTable(path);
 
         const recordId =
-          id ||
-          getIdFromPath(path);
+          id || getIdFromPath(path);
 
         if (!recordId) {
           throw new Error(
@@ -723,23 +685,22 @@
           );
         }
 
-        const { data, error } =
-          await client
-            .from(table)
-            .delete()
-            .eq("id", recordId)
-            .select();
+        const result = await client
+          .from(table)
+          .delete()
+          .eq("id", recordId)
+          .select();
 
-        if (error) {
+        if (result.error) {
           handleError(
             "DELETE",
-            error
+            result.error
           );
         }
 
         return fromDbList(
           table,
-          data
+          result.data
         );
 
       } catch (error) {
@@ -754,41 +715,34 @@
     // LOGIN
     // ===================================================
 
-    async login(
-      email,
-      password
-    ) {
+    async login(email, password) {
       if (!email || !password) {
         throw new Error(
           "Email and password are required."
         );
       }
 
-      const { data, error } =
-        await client.auth
-          .signInWithPassword({
-            email: email.trim(),
-            password
-          });
+      const result =
+        await client.auth.signInWithPassword({
+          email: email.trim(),
+          password: password
+        });
 
-      if (error) {
+      if (result.error) {
         handleError(
           "LOGIN",
-          error
+          result.error
         );
       }
 
-      return data;
+      return result.data;
     },
 
     // ===================================================
     // REGISTER
     // ===================================================
 
-    async register(
-      email,
-      password
-    ) {
+    async register(email, password) {
       if (!email || !password) {
         throw new Error(
           "Email and password are required."
@@ -801,21 +755,20 @@
         );
       }
 
-      const { data, error } =
-        await client.auth
-          .signUp({
-            email: email.trim(),
-            password
-          });
+      const result =
+        await client.auth.signUp({
+          email: email.trim(),
+          password: password
+        });
 
-      if (error) {
+      if (result.error) {
         handleError(
           "REGISTER",
-          error
+          result.error
         );
       }
 
-      return data;
+      return result.data;
     },
 
     // ===================================================
@@ -823,8 +776,7 @@
     // ===================================================
 
     async isAuthed() {
-      const session =
-        await getSession();
+      const session = await getSession();
 
       return !!session;
     },
@@ -850,13 +802,13 @@
     // ===================================================
 
     async logout() {
-      const { error } =
+      const result =
         await client.auth.signOut();
 
-      if (error) {
+      if (result.error) {
         handleError(
           "LOGOUT",
-          error
+          result.error
         );
       }
 
@@ -883,8 +835,7 @@
         );
       }
 
-      const user =
-        await getUser();
+      const user = await getUser();
 
       if (!user) {
         throw new Error(
@@ -897,36 +848,32 @@
         currentPassword &&
         user.email
       ) {
-        const { error } =
-          await client.auth
-            .signInWithPassword({
-              email: user.email,
-              password:
-                currentPassword
-            });
+        const result =
+          await client.auth.signInWithPassword({
+            email: user.email,
+            password: currentPassword
+          });
 
-        if (error) {
+        if (result.error) {
           throw new Error(
             "Current password is incorrect."
           );
         }
       }
 
-      const { data, error } =
-        await client.auth
-          .updateUser({
-            password:
-              newPassword
-          });
+      const result =
+        await client.auth.updateUser({
+          password: newPassword
+        });
 
-      if (error) {
+      if (result.error) {
         handleError(
           "CHANGE PASSWORD",
-          error
+          result.error
         );
       }
 
-      return data;
+      return result.data;
     },
 
     // ===================================================
@@ -942,22 +889,16 @@
         testimonials: "testimonials",
         teams: "teams",
         challenges: "challenges",
-        joinRequests:
-          "join_requests"
+        joinRequests: "join_requests"
       };
 
       const result = {};
 
       await Promise.all(
-        Object.entries(
-          tables
-        ).map(
-          async ([key, table]) => {
+        Object.entries(tables).map(
+          async function ([key, table]) {
             try {
-              const {
-                count,
-                error
-              } =
+              const response =
                 await client
                   .from(table)
                   .select("*", {
@@ -965,21 +906,23 @@
                     head: true
                   });
 
-              if (error) {
+              if (response.error) {
                 console.warn(
-                  `DragonByte Stats: ${table}`,
-                  error.message
+                  "DragonByte Stats: " +
+                  table,
+                  response.error.message
                 );
 
                 result[key] = 0;
               } else {
                 result[key] =
-                  count || 0;
+                  response.count || 0;
               }
 
             } catch (error) {
               console.warn(
-                `DragonByte Stats Error: ${table}`,
+                "DragonByte Stats Error: " +
+                table,
                 error
               );
 
@@ -997,27 +940,24 @@
     // ===================================================
 
     async refreshSession() {
-      const { data, error } =
-        await client.auth
-          .refreshSession();
+      const result =
+        await client.auth.refreshSession();
 
-      if (error) {
+      if (result.error) {
         handleError(
           "REFRESH SESSION",
-          error
+          result.error
         );
       }
 
-      return data;
+      return result.data;
     },
 
     // ===================================================
     // AUTH STATE LISTENER
     // ===================================================
 
-    onAuthStateChange(
-      callback
-    ) {
+    onAuthStateChange(callback) {
       if (
         typeof callback !==
         "function"
@@ -1027,257 +967,161 @@
         );
       }
 
-      return client.auth
-        .onAuthStateChange(
-          (event, session) => {
-            callback(
-              event,
-              session
-            );
-          }
-        );
+      return client.auth.onAuthStateChange(
+        function (event, session) {
+          callback(
+            event,
+            session
+          );
+        }
+      );
     }
   };
 
   // =====================================================
-  // GLOBAL API
+  // DRAGONBYTE DATA COMPATIBILITY API
+  //
+  // Your home.js uses DragonByteData.
+  // This creates that API.
+  // =====================================================
+
+  const DragonByteData = {
+
+    async getEvents(limit) {
+      const data =
+        await Api.get("/events");
+
+      return Array.isArray(data)
+        ? data.slice(
+            0,
+            Number(limit) || data.length
+          )
+        : [];
+    },
+
+    async getProjects(limit) {
+      const data =
+        await Api.get("/projects");
+
+      return Array.isArray(data)
+        ? data.slice(
+            0,
+            Number(limit) || data.length
+          )
+        : [];
+    },
+
+    async getContributors(limit) {
+      const data =
+        await Api.get("/contributors");
+
+      return Array.isArray(data)
+        ? data.slice(
+            0,
+            Number(limit) || data.length
+          )
+        : [];
+    },
+
+    async getTestimonials(limit) {
+      const data =
+        await Api.get("/testimonials");
+
+      return Array.isArray(data)
+        ? data.slice(
+            0,
+            Number(limit) || data.length
+          )
+        : [];
+    },
+
+    async getTeams(limit) {
+      const data =
+        await Api.get("/teams");
+
+      return Array.isArray(data)
+        ? data.slice(
+            0,
+            Number(limit) || data.length
+          )
+        : [];
+    },
+
+    async getMembers(limit) {
+      const data =
+        await Api.get("/members");
+
+      return Array.isArray(data)
+        ? data.slice(
+            0,
+            Number(limit) || data.length
+          )
+        : [];
+    },
+
+    async getBlogs(limit) {
+      const data =
+        await Api.get("/blogs");
+
+      return Array.isArray(data)
+        ? data.slice(
+            0,
+            Number(limit) || data.length
+          )
+        : [];
+    },
+
+    async getResources(limit) {
+      const data =
+        await Api.get("/resources");
+
+      return Array.isArray(data)
+        ? data.slice(
+            0,
+            Number(limit) || data.length
+          )
+        : [];
+    },
+
+    async getWorkshops(limit) {
+      const data =
+        await Api.get("/workshops");
+
+      return Array.isArray(data)
+        ? data.slice(
+            0,
+            Number(limit) || data.length
+          )
+        : [];
+    },
+
+    async getChallenges() {
+      return await Api.get(
+        "/ctf/challenges"
+      );
+    },
+
+    async getLeaderboard() {
+      return await Api.get(
+        "/ctf/leaderboard"
+      );
+    },
+
+    async getCTFStats() {
+      return await Api.get(
+        "/ctf/stats"
+      );
+    }
+  };
+
+  // =====================================================
+  // GLOBAL EXPORTS
   // =====================================================
 
   window.Api = Api;
 
-  // =====================================================
-  // DRAGONBYTE DATA
-  // Compatibility layer for existing home.js
-  // =====================================================
-
-  window.DragonByteData = {
-
-    // ===============================================
-    // EVENTS
-    // ===============================================
-
-    async getEvents(limit = 10) {
-      const data =
-        await window.Api.get(
-          "/events"
-        );
-
-      return Array.isArray(data)
-        ? data.slice(0, limit)
-        : [];
-    },
-
-    // ===============================================
-    // PROJECTS
-    // ===============================================
-
-    async getProjects(limit = 10) {
-      const data =
-        await window.Api.get(
-          "/projects"
-        );
-
-      return Array.isArray(data)
-        ? data.slice(0, limit)
-        : [];
-    },
-
-    // ===============================================
-    // CONTRIBUTORS
-    // ===============================================
-
-    async getContributors(
-      limit = 10
-    ) {
-      const data =
-        await window.Api.get(
-          "/contributors"
-        );
-
-      return Array.isArray(data)
-        ? data.slice(0, limit)
-        : [];
-    },
-
-    // ===============================================
-    // TESTIMONIALS
-    // ===============================================
-
-    async getTestimonials(
-      limit = 10
-    ) {
-      const data =
-        await window.Api.get(
-          "/testimonials"
-        );
-
-      return Array.isArray(data)
-        ? data.slice(0, limit)
-        : [];
-    },
-
-    // ===============================================
-    // TEAMS
-    // ===============================================
-
-    async getTeams(limit = 10) {
-      const data =
-        await window.Api.get(
-          "/teams"
-        );
-
-      return Array.isArray(data)
-        ? data.slice(0, limit)
-        : [];
-    },
-
-    // ===============================================
-    // MEMBERS
-    // ===============================================
-
-    async getMembers(limit = 10) {
-      const data =
-        await window.Api.get(
-          "/members"
-        );
-
-      return Array.isArray(data)
-        ? data.slice(0, limit)
-        : [];
-    },
-
-    // ===============================================
-    // BLOGS
-    // ===============================================
-
-    async getBlogs(limit = 10) {
-      const data =
-        await window.Api.get(
-          "/blogs"
-        );
-
-      return Array.isArray(data)
-        ? data.slice(0, limit)
-        : [];
-    },
-
-    // ===============================================
-    // RESOURCES
-    // ===============================================
-
-    async getResources(limit = 10) {
-      const data =
-        await window.Api.get(
-          "/resources"
-        );
-
-      return Array.isArray(data)
-        ? data.slice(0, limit)
-        : [];
-    },
-
-    // ===============================================
-    // WORKSHOPS
-    // ===============================================
-
-    async getWorkshops(limit = 10) {
-      const data =
-        await window.Api.get(
-          "/workshops"
-        );
-
-      return Array.isArray(data)
-        ? data.slice(0, limit)
-        : [];
-    },
-
-    // ===============================================
-    // CTF CHALLENGES
-    // ===============================================
-
-    async getChallenges(limit = 100) {
-      const data =
-        await window.Api.get(
-          "/ctf/challenges"
-        );
-
-      return Array.isArray(data)
-        ? data.slice(0, limit)
-        : [];
-    },
-
-    // ===============================================
-    // GENERIC GET
-    // ===============================================
-
-    async get(path) {
-      return await window.Api.get(
-        path
-      );
-    },
-
-    // ===============================================
-    // GENERIC GET BY ID
-    // ===============================================
-
-    async getById(
-      path,
-      id
-    ) {
-      return await window.Api.getById(
-        path,
-        id
-      );
-    },
-
-    // ===============================================
-    // GENERIC POST
-    // ===============================================
-
-    async post(
-      path,
-      body = {}
-    ) {
-      return await window.Api.post(
-        path,
-        body
-      );
-    },
-
-    // ===============================================
-    // GENERIC UPDATE
-    // ===============================================
-
-    async update(
-      path,
-      id,
-      body = {}
-    ) {
-      return await window.Api.update(
-        path,
-        id,
-        body
-      );
-    },
-
-    // ===============================================
-    // GENERIC DELETE
-    // ===============================================
-
-    async delete(
-      path,
-      id
-    ) {
-      return await window.Api.del(
-        path,
-        id
-      );
-    }
-  };
-
-  // =====================================================
-  // GLOBAL TABLE MAP
-  // =====================================================
+  window.DragonByteData =
+    DragonByteData;
 
   window.API_TABLES =
     API_TABLES;
@@ -1295,38 +1139,31 @@
     }
 
     return String(value)
-      .replace(
-        /&/g,
-        "&amp;"
-      )
-      .replace(
-        /</g,
-        "&lt;"
-      )
-      .replace(
-        />/g,
-        "&gt;"
-      )
-      .replace(
-        /"/g,
-        "&quot;"
-      )
-      .replace(
-        /'/g,
-        "&#039;"
-      );
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   };
 
   // =====================================================
-  // API READY
+  // INITIALIZE
   // =====================================================
 
-  console.log(
-    "DragonByte API loaded successfully."
-  );
-
-  console.log(
-    "DragonByteData compatibility layer ready."
-  );
+  Api.init()
+    .then(function () {
+      console.log(
+        "DragonByte API loaded successfully."
+      );
+      console.log(
+        "DragonByteData compatibility API loaded."
+      );
+    })
+    .catch(function (error) {
+      console.error(
+        "DragonByte API initialization error:",
+        error
+      );
+    });
 
 })();
