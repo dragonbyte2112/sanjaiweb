@@ -1,5 +1,8 @@
-// Fill these in from Supabase Dashboard → Project Settings → API
-// The anon key is safe to expose in frontend code — it only grants what
-// your Row Level Security policies (see supabase/schema.sql) allow.
-window.SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
-window.SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
+const SUPABASE_URL = "https://lfwwslohugqojibcpkys.supabase.co";
+
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmd3dzbG9odWdxb2ppYmNwa3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MTIzMDEsImV4cCI6MjEwMzQ4ODMwMX0.-TjfeMSsZLQv72DLbJJQ-NQ90r6j-cXzX4hPhlskAE0";
+
+window.supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
