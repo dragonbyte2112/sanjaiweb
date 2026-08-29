@@ -1,85 +1,74 @@
+// =====================================================
+// DragonByte API
+// =====================================================
+
 const API_TABLES = {
   "/events": "events",
   "/projects": "projects",
   "/contributors": "contributors",
   "/testimonials": "testimonials",
   "/teams": "teams",
-  "/members": "members"
+  "/members": "members",
+
+  // CTF
+  "/ctf/challenges": "challenges"
 };
 
 
+// =====================================================
+// Resolve API endpoint -> Supabase table
+// =====================================================
+
+function resolveTable(path) {
+
+  // Direct match
+  if (API_TABLES[path]) {
+    return API_TABLES[path];
+  }
+
+  // Admin endpoint
+  if (path.endsWith("/admin/all")) {
+
+    const basePath = path.replace("/admin/all", "");
+
+    if (API_TABLES[basePath]) {
+      return API_TABLES[basePath];
+    }
+  }
+
+  throw new Error(`Unknown API endpoint: ${path}`);
+}
+
+
+// =====================================================
+// API
+// =====================================================
+
 const Api = {
 
-  // =====================================================
-  // LOGIN
-  // =====================================================
-
-  async login(email, password) {
-
-    if (!email || !password) {
-      throw new Error("Email and password are required.");
-    }
-
-    const { data, error } =
-      await supabaseClient.auth.signInWithPassword({
-        email: email.trim(),
-        password: password
-      });
-
-    if (error) {
-      console.error("Supabase login error:", error);
-      throw error;
-    }
-
-    return data;
-  },
-
-
-  // =====================================================
-  // REGISTER
-  // =====================================================
-
-  async register(email, password) {
-
-    if (!email || !password) {
-      throw new Error("Email and password are required.");
-    }
-
-    const { data, error } =
-      await supabaseClient.auth.signUp({
-        email: email.trim(),
-        password: password
-      });
-
-    if (error) {
-      console.error("Supabase registration error:", error);
-      throw error;
-    }
-
-    return data;
-  },
-
-
-  // =====================================================
+  // ---------------------------------------------------
   // GET
-  // =====================================================
+  // ---------------------------------------------------
 
   async get(path) {
 
-    const table = API_TABLES[path];
+    const table = resolveTable(path);
 
-    if (!table) {
-      throw new Error(`Unknown API endpoint: ${path}`);
-    }
+    console.log(
+      `DragonByte API GET: ${path} -> ${table}`
+    );
 
-    const { data, error } =
-      await supabaseClient
-        .from(table)
-        .select("*");
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from(table)
+      .select("*");
 
     if (error) {
+
       console.error(
-        `Supabase error (${table}):`,
+        `Supabase GET error (${table}):`,
         error
       );
 
@@ -90,27 +79,30 @@ const Api = {
   },
 
 
-  // =====================================================
+  // ---------------------------------------------------
   // POST
-  // =====================================================
+  // ---------------------------------------------------
 
   async post(path, body) {
 
-    const table = API_TABLES[path];
+    const table = resolveTable(path);
 
-    if (!table) {
-      throw new Error(`Unknown API endpoint: ${path}`);
-    }
+    console.log(
+      `DragonByte API POST: ${path} -> ${table}`
+    );
 
-    const { data, error } =
-      await supabaseClient
-        .from(table)
-        .insert(body)
-        .select();
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from(table)
+      .insert(body)
+      .select();
 
     if (error) {
+
       console.error(
-        `Supabase insert error (${table}):`,
+        `Supabase POST error (${table}):`,
         error
       );
 
@@ -121,35 +113,155 @@ const Api = {
   },
 
 
-  // =====================================================
+  // ---------------------------------------------------
   // PUT
-  // =====================================================
+  // ---------------------------------------------------
 
   async put(path, body) {
 
     throw new Error(
-      "PUT endpoint needs to be configured with the table ID."
+      "PUT requires a record ID. Use Api.update(table, id, body)."
     );
-
   },
 
 
-  // =====================================================
+  // ---------------------------------------------------
+  // UPDATE
+  // ---------------------------------------------------
+
+  async update(path, id, body) {
+
+    const table = resolveTable(path);
+
+    if (!id) {
+      throw new Error("Record ID is required.");
+    }
+
+    console.log(
+      `DragonByte API UPDATE: ${table} -> ${id}`
+    );
+
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from(table)
+      .update(body)
+      .eq("id", id)
+      .select();
+
+    if (error) {
+
+      console.error(
+        `Supabase UPDATE error (${table}):`,
+        error
+      );
+
+      throw error;
+    }
+
+    return data || [];
+  },
+
+
+  // ---------------------------------------------------
   // DELETE
-  // =====================================================
+  // ---------------------------------------------------
 
-  async del(path) {
+  async del(path, id) {
 
-    throw new Error(
-      "DELETE endpoint needs to be configured with the table ID."
+    const table = resolveTable(path);
+
+    if (!id) {
+      throw new Error("Record ID is required.");
+    }
+
+    console.log(
+      `DragonByte API DELETE: ${table} -> ${id}`
     );
 
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from(table)
+      .delete()
+      .eq("id", id)
+      .select();
+
+    if (error) {
+
+      console.error(
+        `Supabase DELETE error (${table}):`,
+        error
+      );
+
+      throw error;
+    }
+
+    return data || [];
   },
 
 
-  // =====================================================
-  // CHECK AUTHENTICATION
-  // =====================================================
+  // ---------------------------------------------------
+  // LOGIN
+  // ---------------------------------------------------
+
+  async login(email, password) {
+
+    if (!email || !password) {
+      throw new Error(
+        "Email and password are required."
+      );
+    }
+
+    const {
+      data,
+      error
+    } = await supabaseClient.auth.signInWithPassword({
+      email: email.trim(),
+      password
+    });
+
+    if (error) {
+
+      console.error(
+        "Supabase login error:",
+        error
+      );
+
+      throw error;
+    }
+
+    return data;
+  },
+
+
+  // ---------------------------------------------------
+  // REGISTER
+  // ---------------------------------------------------
+
+  async register(email, password) {
+
+    const {
+      data,
+      error
+    } = await supabaseClient.auth.signUp({
+      email: email.trim(),
+      password
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  },
+
+
+  // ---------------------------------------------------
+  // AUTH CHECK
+  // ---------------------------------------------------
 
   async isAuthed() {
 
@@ -159,6 +271,7 @@ const Api = {
     } = await supabaseClient.auth.getSession();
 
     if (error) {
+
       console.error(
         "Session check error:",
         error
@@ -168,13 +281,12 @@ const Api = {
     }
 
     return !!data.session;
-
   },
 
 
-  // =====================================================
-  // GET CURRENT USER
-  // =====================================================
+  // ---------------------------------------------------
+  // CURRENT USER
+  // ---------------------------------------------------
 
   async getUser() {
 
@@ -188,63 +300,56 @@ const Api = {
     }
 
     return data.user;
-
   },
 
 
-  // =====================================================
+  // ---------------------------------------------------
   // LOGOUT
-  // =====================================================
+  // ---------------------------------------------------
 
   async logout() {
 
-    const { error } =
-      await supabaseClient.auth.signOut();
+    const {
+      error
+    } = await supabaseClient.auth.signOut();
 
     if (error) {
-      console.error(
-        "Logout error:",
-        error
-      );
-
       throw error;
     }
 
     return true;
-
   }
 
 };
 
 
-// =======================================================
-// MAKE API AVAILABLE EVERYWHERE
-// =======================================================
+// =====================================================
+// Global API
+// =====================================================
 
 window.Api = Api;
 
 
-// =======================================================
+// =====================================================
 // HTML ESCAPE
-// =======================================================
+// =====================================================
 
-window.esc = function (str) {
+window.esc = function (value) {
 
   if (
-    str === null ||
-    str === undefined
+    value === null ||
+    value === undefined
   ) {
     return "";
   }
 
-  return String(str)
+  return String(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-
 };
 
 
-console.log("DragonByte API ready!");
+console.log("DragonByte API loaded successfully.");
