@@ -1,32 +1,55 @@
 /* =========================================================
    DragonByte API
-   Supabase-powered frontend API wrapper
-========================================================= */
+   Supabase browser client + Admin CRUD
+   ========================================================= */
 
 (function () {
   "use strict";
 
   /* =======================================================
+     SUPABASE CONFIG
+     ======================================================= */
+
+  const SUPABASE_URL =
+    "https://lfwwslohugqojibcpkys.supabase.co";
+
+  const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_4OBUm9wgJwRAqN9hi8QLOw_5WYgQcUG";
+
+  /* =======================================================
      SUPABASE CLIENT
-  ======================================================= */
+     ======================================================= */
 
-  const client = window.supabaseClient;
+  function getClient() {
+    if (
+      window.supabaseClient &&
+      typeof window.supabaseClient.from === "function"
+    ) {
+      return window.supabaseClient;
+    }
 
-  if (!client) {
-    console.error(
-      "DragonByte API Error: window.supabaseClient is not available."
+    if (
+      !window.supabase ||
+      typeof window.supabase.createClient !== "function"
+    ) {
+      throw new Error(
+        "Supabase library is not loaded. Make sure @supabase/supabase-js is loaded before api.js."
+      );
+    }
+
+    window.supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
     );
 
-    return;
-  }
+    console.log("DragonByte: Supabase connected!");
 
-  console.log(
-    "DragonByte API: Supabase client detected."
-  );
+    return window.supabaseClient;
+  }
 
   /* =======================================================
      TABLE MAP
-  ======================================================= */
+     ======================================================= */
 
   const API_TABLES = {
     "/events": "events",
@@ -35,196 +58,153 @@
     "/testimonials": "testimonials",
     "/teams": "teams",
     "/members": "members",
-
-    "/join": "join_requests",
-    "/join-requests": "join_requests",
-    "/requests": "join_requests",
-
-    "/contact": "contact_messages",
-    "/messages": "messages",
-
-    "/ctf/challenges": "ctf_challenges",
-
-    "/blogs": "blogs",
-    "/resources": "resources",
-    "/workshops": "workshops"
   };
 
+  function resolveTable(path) {
+    if (API_TABLES[path]) {
+      return API_TABLES[path];
+    }
+
+    for (const [apiPath, table] of Object.entries(API_TABLES)) {
+      if (path === `${apiPath}/admin/all`) {
+        return table;
+      }
+    }
+
+    throw new Error(`Unknown API endpoint: ${path}`);
+  }
+
   /* =======================================================
-     FIELD MAP
-  ======================================================= */
+     FRONTEND -> DATABASE FIELD MAPPING
+     ======================================================= */
 
   const FIELD_MAP = {
     events: {
       registrationUrl: "registration_url",
       coverPhoto: "cover_photo",
-      coverImage: "cover_image",
-      imageUrl: "image_url",
-      eventDate: "event_date",
-      eventTime: "event_time"
     },
 
     projects: {
       githubUrl: "github_url",
       demoUrl: "demo_url",
+      resourceUrl: "resource_url",
       coverPhoto: "cover_photo",
-      coverImage: "cover_image",
-      imageUrl: "image_url"
-    }
+    },
+
+    contributors: {
+      coverPhoto: "cover_photo",
+    },
+
+    testimonials: {
+      coverPhoto: "cover_photo",
+    },
+
+    teams: {
+      logoUrl: "logo_url",
+      githubUrl: "github_url",
+      websiteUrl: "website_url",
+      membersCount: "members_count",
+    },
+
+    members: {
+      joinedAt: "joined_at",
+    },
   };
 
   /* =======================================================
-     REVERSE FIELD MAP
-  ======================================================= */
+     DATABASE -> FRONTEND FIELD MAPPING
+     ======================================================= */
 
-  function getReverseMap(table) {
-    const map = FIELD_MAP[table] || {};
-    const reverse = {};
-
-    Object.entries(map).forEach(function ([jsKey, dbKey]) {
-      reverse[dbKey] = jsKey;
-    });
-
-    return reverse;
-  }
-
-  /* =======================================================
-     NORMALIZE PATH
-  ======================================================= */
-
-  function normalizePath(path) {
-    if (!path) {
-      throw new Error("API path is required.");
-    }
-
-    let value = String(path).trim();
-
-    if (!value.startsWith("/")) {
-      value = "/" + value;
-    }
-
-    if (value.length > 1) {
-      value = value.replace(/\/+$/, "");
-    }
-
-    return value;
-  }
-
-  /* =======================================================
-     JAVASCRIPT -> DATABASE
-  ======================================================= */
-
-  function toDb(table, body) {
-    if (!body || typeof body !== "object") {
-      return {};
+  function toDb(table, value) {
+    if (!value || typeof value !== "object") {
+      return value;
     }
 
     const map = FIELD_MAP[table] || {};
     const output = {};
 
-    Object.entries(body).forEach(function ([key, value]) {
-      const dbKey = map[key] || key;
-      output[dbKey] = value;
+    Object.entries(value).forEach(([key, val]) => {
+      output[map[key] || key] = val;
     });
 
     return output;
   }
 
-  /* =======================================================
-     DATABASE -> JAVASCRIPT
-  ======================================================= */
-
-  function fromDb(table, row) {
-    if (!row) {
-      return row;
+  function fromDb(table, value) {
+    if (!value || typeof value !== "object") {
+      return value;
     }
 
-    const reverseMap = getReverseMap(table);
-    const output = {};
+    const map = FIELD_MAP[table] || {};
 
-    Object.entries(row).forEach(function ([key, value]) {
-      output[reverseMap[key] || key] = value;
-    });
-
-    return output;
-  }
-
-  function fromDbList(table, rows) {
-    return (rows || []).map(function (row) {
-      return fromDb(table, row);
-    });
-  }
-
-  /* =======================================================
-     RESOLVE TABLE
-  ======================================================= */
-
-  function resolveTable(path) {
-    path = normalizePath(path);
-
-    if (API_TABLES[path]) {
-      return API_TABLES[path];
-    }
-
-    if (path.startsWith("/ctf/challenges/")) {
-      return "ctf_challenges";
-    }
-
-    if (path.endsWith("/admin/all")) {
-      const base = path.replace(/\/admin\/all$/, "");
-
-      if (API_TABLES[base]) {
-        return API_TABLES[base];
-      }
-    }
-
-    const parts = path.split("/").filter(Boolean);
-
-    if (parts.length >= 2) {
-      const base = "/" + parts[0];
-
-      if (API_TABLES[base]) {
-        return API_TABLES[base];
-      }
-    }
-
-    throw new Error(
-      "Unknown API endpoint: " + path
+    const reverse = Object.fromEntries(
+      Object.entries(map).map(([frontend, database]) => [
+        database,
+        frontend,
+      ])
     );
+
+    const output = {};
+
+    Object.entries(value).forEach(([key, val]) => {
+      output[reverse[key] || key] = val;
+    });
+
+    return output;
+  }
+
+  function fromDbList(table, list) {
+    return (list || []).map((row) => fromDb(table, row));
   }
 
   /* =======================================================
-     GET ID
-  ======================================================= */
+     ENTITY CONFIG
+     ======================================================= */
 
-  function getIdFromPath(path) {
-    const normalized = normalizePath(path);
+  const ENTITY_TABLES = [
+    "events",
+    "projects",
+    "contributors",
+    "testimonials",
+    "members",
+    "teams",
+  ];
 
-    const parts = normalized
-      .split("/")
-      .filter(Boolean);
+  const PUBLISHED_TABLES = new Set([
+    "events",
+    "projects",
+  ]);
 
-    if (!parts.length) {
-      return null;
-    }
+  const APPROVED_TABLES = new Set([
+    "testimonials",
+  ]);
 
-    if (
-      parts[0] === "ctf" &&
-      parts[1] === "challenges" &&
-      parts[2]
-    ) {
-      return parts[2];
-    }
+  function matchEntity(path) {
+    for (const table of ENTITY_TABLES) {
+      if (path === `/${table}`) {
+        return {
+          table,
+          mode: "public-list",
+        };
+      }
 
-    if (parts.length >= 2) {
-      const last =
-        parts[parts.length - 1];
+      if (path === `/${table}/admin/all`) {
+        return {
+          table,
+          mode: "admin-list",
+        };
+      }
 
-      if (
-        last !== "admin" &&
-        last !== "all"
-      ) {
-        return last;
+      const match = path.match(
+        new RegExp(`^/${table}/([^/]+)$`)
+      );
+
+      if (match) {
+        return {
+          table,
+          mode: "item",
+          id: match[1],
+        };
       }
     }
 
@@ -232,226 +212,388 @@
   }
 
   /* =======================================================
-     ERROR HANDLER
-  ======================================================= */
+     API OBJECT
+     ======================================================= */
 
-  function handleError(operation, error) {
-    console.error(
-      "DragonByte API " +
-        operation +
-        " Error:",
-      error
-    );
+  const Api = {
+    _session: null,
+    _authListenerInstalled: false,
 
-    if (error && error.message) {
-      throw new Error(error.message);
-    }
+    /* =====================================================
+       INIT
+       ===================================================== */
 
-    throw (
-      error ||
-      new Error(
-        "DragonByte API " +
-          operation +
-          " failed."
-      )
-    );
-  }
+    async init() {
+      const client = getClient();
 
-  /* =======================================================
-     AUTH
-  ======================================================= */
-
-  async function getSession() {
-    try {
       const {
         data,
-        error
+        error,
       } = await client.auth.getSession();
 
       if (error) {
-        console.error(
-          "DragonByte session error:",
-          error
+        console.warn(
+          "DragonByte Auth session error:",
+          error.message
+        );
+      }
+
+      Api._session = data?.session || null;
+
+      if (!Api._authListenerInstalled) {
+        client.auth.onAuthStateChange(
+          (_event, session) => {
+            Api._session = session || null;
+
+            if (session?.access_token) {
+              localStorage.setItem(
+                "db_admin_token",
+                session.access_token
+              );
+            } else {
+              localStorage.removeItem(
+                "db_admin_token"
+              );
+            }
+          }
         );
 
-        return null;
+        Api._authListenerInstalled = true;
       }
-
-      return data?.session || null;
-    } catch (error) {
-      console.error(
-        "DragonByte session exception:",
-        error
-      );
-
-      return null;
-    }
-  }
-
-  async function getUser() {
-    try {
-      const {
-        data,
-        error
-      } = await client.auth.getUser();
-
-      if (error) {
-        return null;
-      }
-
-      return data?.user || null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  /* =======================================================
-     API
-  ======================================================= */
-
-  const Api = {
-
-    /* ===================================================
-       INIT
-    =================================================== */
-
-    async init() {
-      const session =
-        await getSession();
 
       console.log(
-        "DragonByte API initialized:",
-        session
-          ? "Authenticated"
-          : "Guest"
+        "DragonByte Auth:",
+        Api._session ? "SIGNED_IN" : "SIGNED_OUT"
       );
 
-      return !!session;
+      return Api._session;
     },
 
-    /* ===================================================
+    /* =====================================================
+       AUTH CHECK
+       ===================================================== */
+
+    isAuthed() {
+      return !!Api._session;
+    },
+
+    /* =====================================================
+       LOGIN
+       ===================================================== */
+
+    async login(email, password) {
+      if (!email || !password) {
+        throw new Error(
+          "Email and password are required."
+        );
+      }
+
+      const client = getClient();
+
+      const {
+        data,
+        error,
+      } = await client.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      Api._session = data?.session || null;
+
+      if (data?.session?.access_token) {
+        localStorage.setItem(
+          "db_admin_token",
+          data.session.access_token
+        );
+      }
+
+      console.log(
+        "DragonByte Auth: SIGNED_IN"
+      );
+
+      return data;
+    },
+
+    /* =====================================================
+       LOGOUT
+       ===================================================== */
+
+    async logout() {
+      const client = getClient();
+
+      const {
+        error,
+      } = await client.auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      Api._session = null;
+
+      localStorage.removeItem(
+        "db_admin_token"
+      );
+
+      console.log(
+        "DragonByte Auth: SIGNED_OUT"
+      );
+
+      return true;
+    },
+
+    /* =====================================================
        GET
-    =================================================== */
+       ===================================================== */
 
     async get(path) {
-      try {
-        path = normalizePath(path);
+      const client = getClient();
 
-        /* Admin statistics */
+      /* ---------------------------------------------------
+         ADMIN STATS
+         --------------------------------------------------- */
 
-        if (path === "/admin/stats") {
-          return await this.getAdminStats();
+      if (path === "/admin/stats") {
+        const {
+          data,
+          error,
+        } = await client.rpc("admin_stats");
+
+        if (error) {
+          throw error;
         }
 
-        /* CTF leaderboard */
+        return data || {};
+      }
 
-        if (
-          path ===
-          "/ctf/leaderboard"
-        ) {
-          const {
-            data,
-            error
-          } = await client
-            .from("leaderboard")
-            .select("*");
+      /* ---------------------------------------------------
+         CTF PUBLIC CHALLENGES
+         --------------------------------------------------- */
 
-          if (error) {
-            handleError(
-              "GET leaderboard",
-              error
-            );
-          }
+      if (path === "/ctf/challenges") {
+        const {
+          data,
+          error,
+        } = await client
+          .from("public_challenges")
+          .select("*")
+          .order("created_at", {
+            ascending: false,
+          });
 
-          return data || [];
+        if (error) {
+          throw error;
         }
 
-        /* CTF statistics */
+        return (data || []).map((row) => ({
+          ...row,
+          solvedCount: row.solved_count,
+        }));
+      }
 
-        if (
-          path === "/ctf/stats"
-        ) {
-          const {
-            data,
-            error
-          } = await client
-            .from("ctf_challenges")
-            .select("*");
+      /* ---------------------------------------------------
+         CTF ADMIN CHALLENGES
+         --------------------------------------------------- */
 
-          if (error) {
-            handleError(
-              "GET CTF stats",
-              error
-            );
-          }
+      if (path === "/ctf/challenges/admin/all") {
+        const {
+          data,
+          error,
+        } = await client
+          .from("admin_challenges")
+          .select("*")
+          .order("created_at", {
+            ascending: false,
+          });
 
-          const challenges =
-            data || [];
-
-          return {
-            challenges:
-              challenges.length,
-
-            categories:
-              new Set(
-                challenges
-                  .map(
-                    item =>
-                      item.category
-                  )
-                  .filter(Boolean)
-              ).size,
-
-            totalPoints:
-              challenges.reduce(
-                function (
-                  sum,
-                  item
-                ) {
-                  return (
-                    sum +
-                    Number(
-                      item.points || 0
-                    )
-                  );
-                },
-                0
-              )
-          };
+        if (error) {
+          throw error;
         }
 
-        const table =
-          resolveTable(path);
+        return (data || []).map((row) => ({
+          ...row,
+          hasFlag: row.has_flag,
+        }));
+      }
 
-        let query =
+      /* ---------------------------------------------------
+         CTF LEADERBOARD
+         --------------------------------------------------- */
+
+      if (path === "/ctf/leaderboard") {
+        const {
+          data,
+          error,
+        } = await client
+          .from("leaderboard")
+          .select("*");
+
+        if (error) {
+          throw error;
+        }
+
+        return (data || []).map((row) => ({
+          handle: row.handle,
+          points: row.points,
+          solves: row.solves,
+          lastSolveAt: row.last_solve_at,
+        }));
+      }
+
+      /* ---------------------------------------------------
+         CTF STATS
+         --------------------------------------------------- */
+
+      if (path === "/ctf/stats") {
+        const [
+          challengesResult,
+          leaderboardResult,
+        ] = await Promise.all([
           client
-            .from(table)
-            .select("*");
+            .from("public_challenges")
+            .select("*"),
 
-        /* =============================================
-           PUBLIC FILTERS
-        ============================================= */
+          client
+            .from("leaderboard")
+            .select("*"),
+        ]);
+
+        if (challengesResult.error) {
+          throw challengesResult.error;
+        }
+
+        if (leaderboardResult.error) {
+          throw leaderboardResult.error;
+        }
+
+        const challenges =
+          challengesResult.data || [];
+
+        const leaderboard =
+          leaderboardResult.data || [];
+
+        return {
+          challenges: challenges.length,
+
+          categories: new Set(
+            challenges
+              .map((row) => row.category)
+              .filter(Boolean)
+          ).size,
+
+          totalPoints: challenges.reduce(
+            (sum, row) =>
+              sum + Number(row.points || 0),
+            0
+          ),
+
+          solvedChallenges:
+            challenges.filter(
+              (row) =>
+                Number(row.solved_count || 0) > 0
+            ).length,
+
+          totalSolves:
+            leaderboard.reduce(
+              (sum, row) =>
+                sum + Number(row.solves || 0),
+              0
+            ),
+        };
+      }
+
+      /* ---------------------------------------------------
+         JOIN REQUESTS
+         --------------------------------------------------- */
+
+      if (path === "/join") {
+        const {
+          data,
+          error,
+        } = await client
+          .from("join_requests")
+          .select("*")
+          .order("created_at", {
+            ascending: false,
+          });
+
+        if (error) {
+          throw error;
+        }
+
+        return data || [];
+      }
+
+      /* ---------------------------------------------------
+         CONTACT MESSAGES
+         --------------------------------------------------- */
+
+      if (path === "/contact") {
+        const {
+          data,
+          error,
+        } = await client
+          .from("messages")
+          .select("*")
+          .order("created_at", {
+            ascending: false,
+          });
+
+        if (error) {
+          throw error;
+        }
+
+        return data || [];
+      }
+
+      /* ---------------------------------------------------
+         NORMAL ENTITIES
+         --------------------------------------------------- */
+
+      const entity = matchEntity(path);
+
+      if (
+        entity &&
+        entity.mode !== "item"
+      ) {
+        let query = client
+          .from(entity.table)
+          .select("*");
 
         if (
-          table === "events" ||
-          table === "projects"
+          entity.table !== "members" &&
+          entity.table !== "teams"
+        ) {
+          query = query.order(
+            "created_at",
+            {
+              ascending: false,
+            }
+          );
+        }
+
+        if (
+          entity.mode === "public-list"
         ) {
           if (
-            !path.includes("/admin")
+            PUBLISHED_TABLES.has(
+              entity.table
+            )
           ) {
             query = query.eq(
               "published",
               true
             );
           }
-        }
 
-        if (
-          table ===
-          "testimonials"
-        ) {
           if (
-            !path.includes("/admin")
+            APPROVED_TABLES.has(
+              entity.table
+            )
           ) {
             query = query.eq(
               "approved",
@@ -460,749 +602,588 @@
           }
         }
 
-        /* =============================================
-           IMPORTANT
-           DO NOT ORDER BY created_at
-           ============================================= */
-
-        /*
-          Your current Supabase tables do NOT have
-          created_at.
-
-          Therefore we intentionally do NOT use:
-
-          query.order("created_at")
-
-          This fixes:
-
-          column projects.created_at does not exist
-          column contributors.created_at does not exist
-          column testimonials.created_at does not exist
-          column events.created_at does not exist
-        */
-
-        /* =============================================
-           LOAD DATA
-        ============================================= */
-
         const {
           data,
-          error
+          error,
         } = await query;
 
         if (error) {
-          handleError(
-            "GET",
-            error
-          );
+          throw error;
         }
 
         return fromDbList(
-          table,
+          entity.table,
           data
         );
-
-      } catch (error) {
-        handleError(
-          "GET",
-          error
-        );
       }
+
+      throw new Error(
+        `No Supabase mapping for GET ${path}`
+      );
     },
 
-    /* ===================================================
-       GET BY ID
-    =================================================== */
+    /* =====================================================
+       POST
+       ===================================================== */
 
-    async getById(
-      path,
-      id
-    ) {
-      try {
-        const table =
-          resolveTable(path);
+    async post(path, body) {
+      const client = getClient();
 
-        if (!id) {
+      /* ---------------------------------------------------
+         JOIN
+         --------------------------------------------------- */
+
+      if (path === "/join") {
+        const {
+          error,
+        } = await client
+          .from("join_requests")
+          .insert(body);
+
+        if (error) {
+          throw error;
+        }
+
+        return {
+          ok: true,
+        };
+      }
+
+      /* ---------------------------------------------------
+         CONTACT
+         --------------------------------------------------- */
+
+      if (path === "/contact") {
+        const {
+          error,
+        } = await client
+          .from("messages")
+          .insert(body);
+
+        if (error) {
+          throw error;
+        }
+
+        return {
+          ok: true,
+        };
+      }
+
+      /* ---------------------------------------------------
+         CTF SUBMIT FLAG
+         --------------------------------------------------- */
+
+      if (path === "/ctf/submit") {
+        const {
+          data,
+          error,
+        } = await client.rpc(
+          "submit_flag",
+          {
+            p_challenge_id:
+              body.challengeId,
+
+            p_handle:
+              body.handle,
+
+            p_flag:
+              body.flag,
+          }
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        return {
+          ok: true,
+          points: data,
+        };
+      }
+
+      /* ---------------------------------------------------
+         CTF CREATE
+         --------------------------------------------------- */
+
+      if (
+        path === "/ctf/challenges"
+      ) {
+        const {
+          data,
+          error,
+        } = await client.rpc(
+          "admin_create_challenge",
+          {
+            p_title: body.title,
+            p_description:
+              body.description,
+            p_category:
+              body.category,
+            p_difficulty:
+              body.difficulty,
+            p_points:
+              body.points,
+            p_flag:
+              body.flag,
+            p_published:
+              body.published !== false,
+          }
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        return {
+          id: data,
+        };
+      }
+
+      /* ---------------------------------------------------
+         CHANGE PASSWORD
+         --------------------------------------------------- */
+
+      if (
+        path === "/auth/change-password"
+      ) {
+        const {
+          data: userData,
+          error: userError,
+        } = await client.auth.getUser();
+
+        if (
+          userError ||
+          !userData?.user
+        ) {
           throw new Error(
-            "Record ID is required."
+            "Not signed in"
           );
         }
 
         const {
-          data,
-          error
-        } = await client
-          .from(table)
-          .select("*")
-          .eq("id", id)
-          .maybeSingle();
+          error: reauthError,
+        } = await client.auth.signInWithPassword(
+          {
+            email:
+              userData.user.email,
 
-        if (error) {
-          handleError(
-            "GET BY ID",
-            error
+            password:
+              body.currentPassword,
+          }
+        );
+
+        if (reauthError) {
+          throw new Error(
+            "Current password is incorrect"
           );
         }
 
-        return fromDb(
-          table,
-          data
+        const {
+          error,
+        } = await client.auth.updateUser(
+          {
+            password:
+              body.newPassword,
+          }
         );
 
-      } catch (error) {
-        handleError(
-          "GET BY ID",
-          error
-        );
+        if (error) {
+          throw error;
+        }
+
+        return {
+          ok: true,
+        };
       }
-    },
 
-    /* ===================================================
-       POST
-    =================================================== */
+      /* ---------------------------------------------------
+         NORMAL ENTITY CREATE
+         --------------------------------------------------- */
 
-    async post(
-      path,
-      body = {}
-    ) {
-      try {
-        path =
-          normalizePath(path);
+      const entity = matchEntity(path);
 
-        const table =
-          resolveTable(path);
-
+      if (
+        entity &&
+        entity.mode === "public-list"
+      ) {
         const dbBody =
           toDb(
-            table,
+            entity.table,
             body
           );
 
         const {
           data,
-          error
+          error,
         } = await client
-          .from(table)
+          .from(entity.table)
           .insert(dbBody)
-          .select();
+          .select()
+          .single();
 
         if (error) {
-          handleError(
-            "POST",
+          console.error(
+            "DragonByte API POST Error:",
             error
           );
+
+          throw error;
         }
 
-        return fromDbList(
-          table,
+        return fromDb(
+          entity.table,
           data
         );
-
-      } catch (error) {
-        handleError(
-          "POST",
-          error
-        );
       }
+
+      throw new Error(
+        `No Supabase mapping for POST ${path}`
+      );
     },
 
-    /* ===================================================
+    /* =====================================================
        PUT
-    =================================================== */
+       ===================================================== */
 
-    async put(
-      path,
-      body = {}
-    ) {
-      try {
-        path =
-          normalizePath(path);
+    async put(path, body) {
+      const client = getClient();
 
-        const table =
-          resolveTable(path);
+      /* ---------------------------------------------------
+         JOIN REQUEST
+         --------------------------------------------------- */
 
+      if (
+        path.startsWith("/join/")
+      ) {
         const id =
-          body.id ||
-          getIdFromPath(path);
-
-        if (!id) {
-          throw new Error(
-            "PUT requires an ID."
-          );
-        }
-
-        const updateBody = {
-          ...body
-        };
-
-        delete updateBody.id;
-
-        const dbBody =
-          toDb(
-            table,
-            updateBody
-          );
-
-        const {
-          data,
-          error
-        } = await client
-          .from(table)
-          .update(dbBody)
-          .eq("id", id)
-          .select();
-
-        if (error) {
-          handleError(
-            "PUT",
-            error
-          );
-        }
-
-        return fromDbList(
-          table,
-          data
-        );
-
-      } catch (error) {
-        handleError(
-          "PUT",
-          error
-        );
-      }
-    },
-
-    /* ===================================================
-       UPDATE
-    =================================================== */
-
-    async update(
-      path,
-      id,
-      body = {}
-    ) {
-      try {
-        const table =
-          resolveTable(path);
-
-        if (!id) {
-          throw new Error(
-            "Record ID is required."
-          );
-        }
-
-        const updateBody = {
-          ...body
-        };
-
-        delete updateBody.id;
-
-        const dbBody =
-          toDb(
-            table,
-            updateBody
-          );
-
-        const {
-          data,
-          error
-        } = await client
-          .from(table)
-          .update(dbBody)
-          .eq("id", id)
-          .select();
-
-        if (error) {
-          handleError(
-            "UPDATE",
-            error
-          );
-        }
-
-        return fromDbList(
-          table,
-          data
-        );
-
-      } catch (error) {
-        handleError(
-          "UPDATE",
-          error
-        );
-      }
-    },
-
-    /* ===================================================
-       DELETE
-    =================================================== */
-
-    async del(
-      path,
-      id = null
-    ) {
-      try {
-        path =
-          normalizePath(path);
-
-        const table =
-          resolveTable(path);
-
-        const recordId =
-          id ||
-          getIdFromPath(path);
-
-        if (!recordId) {
-          throw new Error(
-            "Record ID is required for DELETE."
-          );
-        }
-
-        const {
-          data,
-          error
-        } = await client
-          .from(table)
-          .delete()
-          .eq("id", recordId)
-          .select();
-
-        if (error) {
-          handleError(
-            "DELETE",
-            error
-          );
-        }
-
-        return fromDbList(
-          table,
-          data
-        );
-
-      } catch (error) {
-        handleError(
-          "DELETE",
-          error
-        );
-      }
-    },
-
-    /* ===================================================
-       LOGIN
-    =================================================== */
-
-    async login(
-      email,
-      password
-    ) {
-      if (
-        !email ||
-        !password
-      ) {
-        throw new Error(
-          "Email and password are required."
-        );
-      }
-
-      const {
-        data,
-        error
-      } =
-        await client.auth
-          .signInWithPassword({
-            email:
-              email.trim(),
-            password
-          });
-
-      if (error) {
-        handleError(
-          "LOGIN",
-          error
-        );
-      }
-
-      if (
-        data?.session
-          ?.access_token
-      ) {
-        localStorage.setItem(
-          "db_admin_token",
-          data.session
-            .access_token
-        );
-      }
-
-      console.log(
-        "DragonByte: Login successful."
-      );
-
-      return data;
-    },
-
-    /* ===================================================
-       REGISTER
-    =================================================== */
-
-    async register(
-      email,
-      password
-    ) {
-      if (
-        !email ||
-        !password
-      ) {
-        throw new Error(
-          "Email and password are required."
-        );
-      }
-
-      if (
-        password.length < 6
-      ) {
-        throw new Error(
-          "Password must be at least 6 characters."
-        );
-      }
-
-      const {
-        data,
-        error
-      } =
-        await client.auth
-          .signUp({
-            email:
-              email.trim(),
-            password
-          });
-
-      if (error) {
-        handleError(
-          "REGISTER",
-          error
-        );
-      }
-
-      return data;
-    },
-
-    /* ===================================================
-       AUTH CHECK
-    =================================================== */
-
-    async isAuthed() {
-      const session =
-        await getSession();
-
-      return !!session;
-    },
-
-    /* ===================================================
-       USER
-    =================================================== */
-
-    async getUser() {
-      return await getUser();
-    },
-
-    /* ===================================================
-       SESSION
-    =================================================== */
-
-    async getSession() {
-      return await getSession();
-    },
-
-    /* ===================================================
-       LOGOUT
-    =================================================== */
-
-    async logout() {
-      const {
-        error
-      } =
-        await client.auth
-          .signOut();
-
-      if (error) {
-        handleError(
-          "LOGOUT",
-          error
-        );
-      }
-
-      localStorage.removeItem(
-        "db_admin_token"
-      );
-
-      return true;
-    },
-
-    /* ===================================================
-       CHANGE PASSWORD
-    =================================================== */
-
-    async changePassword(
-      currentPassword,
-      newPassword
-    ) {
-      if (!newPassword) {
-        throw new Error(
-          "New password is required."
-        );
-      }
-
-      if (
-        newPassword.length < 6
-      ) {
-        throw new Error(
-          "New password must be at least 6 characters."
-        );
-      }
-
-      const user =
-        await getUser();
-
-      if (!user) {
-        throw new Error(
-          "You must be logged in."
-        );
-      }
-
-      if (
-        currentPassword &&
-        user.email
-      ) {
-        const {
-          error
-        } =
-          await client.auth
-            .signInWithPassword({
-              email:
-                user.email,
-              password:
-                currentPassword
-            });
-
-        if (error) {
-          throw new Error(
-            "Current password is incorrect."
-          );
-        }
-      }
-
-      const {
-        data,
-        error
-      } =
-        await client.auth
-          .updateUser({
-            password:
-              newPassword
-          });
-
-      if (error) {
-        handleError(
-          "CHANGE PASSWORD",
-          error
-        );
-      }
-
-      return data;
-    },
-
-    /* ===================================================
-       ADMIN STATS
-    =================================================== */
-
-    async getAdminStats() {
-      const tables = {
-        members:
-          "members",
-
-        events:
-          "events",
-
-        projects:
-          "projects",
-
-        contributors:
-          "contributors",
-
-        testimonials:
-          "testimonials",
-
-        teams:
-          "teams",
-
-        challenges:
-          "ctf_challenges",
-
-        joinRequests:
-          "join_requests"
-      };
-
-      const result = {};
-
-      await Promise.all(
-        Object.entries(
-          tables
-        ).map(
-          async function (
-            [key, table]
-          ) {
-            try {
-              const {
-                count,
-                error
-              } =
-                await client
-                  .from(table)
-                  .select(
-                    "*",
-                    {
-                      count:
-                        "exact",
-                      head:
-                        true
-                    }
-                  );
-
-              if (error) {
-                console.warn(
-                  "DragonByte Stats:",
-                  table,
-                  error.message
-                );
-
-                result[key] =
-                  0;
-              } else {
-                result[key] =
-                  count || 0;
-              }
-
-            } catch (error) {
-              console.warn(
-                "DragonByte Stats Error:",
-                table,
-                error
-              );
-
-              result[key] =
-                0;
+          path.split("/")[2];
+
+        if (
+          body?.status === "approved"
+        ) {
+          const {
+            error,
+          } = await client.rpc(
+            "admin_approve_join_request",
+            {
+              p_id: id,
             }
+          );
+
+          if (error) {
+            throw error;
           }
-        )
-      );
+        } else {
+          const {
+            error,
+          } = await client
+            .from("join_requests")
+            .update(body)
+            .eq("id", id);
 
-      return result;
-    },
+          if (error) {
+            throw error;
+          }
+        }
 
-    /* ===================================================
-       REFRESH SESSION
-    =================================================== */
-
-    async refreshSession() {
-      const {
-        data,
-        error
-      } =
-        await client.auth
-          .refreshSession();
-
-      if (error) {
-        handleError(
-          "REFRESH SESSION",
-          error
-        );
+        return {
+          ok: true,
+        };
       }
 
-      return data;
-    },
+      /* ---------------------------------------------------
+         CONTACT MESSAGE
+         --------------------------------------------------- */
 
-    /* ===================================================
-       AUTH STATE CHANGE
-    =================================================== */
-
-    onAuthStateChange(
-      callback
-    ) {
       if (
-        typeof callback !==
-        "function"
+        path.startsWith("/contact/")
       ) {
-        throw new Error(
-          "Auth callback must be a function."
+        const id =
+          path.split("/")[2];
+
+        const {
+          error,
+        } = await client
+          .from("messages")
+          .update(body)
+          .eq("id", id);
+
+        if (error) {
+          throw error;
+        }
+
+        return {
+          ok: true,
+        };
+      }
+
+      /* ---------------------------------------------------
+         CTF UPDATE
+         --------------------------------------------------- */
+
+      if (
+        path.startsWith(
+          "/ctf/challenges/"
+        )
+      ) {
+        const id =
+          path.split("/")[3];
+
+        const {
+          error,
+        } = await client.rpc(
+          "admin_update_challenge",
+          {
+            p_id: id,
+            p_title: body.title,
+            p_description:
+              body.description,
+            p_category:
+              body.category,
+            p_difficulty:
+              body.difficulty,
+            p_points:
+              body.points,
+            p_flag:
+              body.flag || null,
+            p_published:
+              body.published !== false,
+          }
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        return {
+          ok: true,
+        };
+      }
+
+      /* ---------------------------------------------------
+         NORMAL ENTITY UPDATE
+         --------------------------------------------------- */
+
+      const entity =
+        matchEntity(path);
+
+      if (
+        entity &&
+        entity.mode === "item"
+      ) {
+        const dbBody =
+          toDb(
+            entity.table,
+            body
+          );
+
+        const {
+          data,
+          error,
+        } = await client
+          .from(entity.table)
+          .update(dbBody)
+          .eq(
+            "id",
+            entity.id
+          )
+          .select()
+          .single();
+
+        if (error) {
+          console.error(
+            "DragonByte API PUT Error:",
+            error
+          );
+
+          throw error;
+        }
+
+        return fromDb(
+          entity.table,
+          data
         );
       }
 
-      return client.auth
-        .onAuthStateChange(
-          function (
-            event,
-            session
-          ) {
-            callback(
-              event,
-              session
-            );
-          }
-        );
-    }
+      throw new Error(
+        `No Supabase mapping for PUT ${path}`
+      );
+    },
+
+    /* =====================================================
+       DELETE
+       ===================================================== */
+
+    async del(path, id) {
+      const client = getClient();
+
+      /* ---------------------------------------------------
+         JOIN REQUEST
+         --------------------------------------------------- */
+
+      if (
+        path.startsWith("/join/")
+      ) {
+        const rowId =
+          path.split("/")[2];
+
+        const {
+          error,
+        } = await client
+          .from("join_requests")
+          .delete()
+          .eq("id", rowId);
+
+        if (error) {
+          throw error;
+        }
+
+        return null;
+      }
+
+      /* ---------------------------------------------------
+         CONTACT
+         --------------------------------------------------- */
+
+      if (
+        path.startsWith("/contact/")
+      ) {
+        const rowId =
+          path.split("/")[2];
+
+        const {
+          error,
+        } = await client
+          .from("messages")
+          .delete()
+          .eq("id", rowId);
+
+        if (error) {
+          throw error;
+        }
+
+        return null;
+      }
+
+      /* ---------------------------------------------------
+         CTF
+         --------------------------------------------------- */
+
+      if (
+        path.startsWith(
+          "/ctf/challenges/"
+        )
+      ) {
+        const rowId =
+          path.split("/")[3];
+
+        const {
+          error,
+        } = await client
+          .from("challenges")
+          .delete()
+          .eq("id", rowId);
+
+        if (error) {
+          throw error;
+        }
+
+        return null;
+      }
+
+      /* ---------------------------------------------------
+         NORMAL ENTITY
+         --------------------------------------------------- */
+
+      const entity =
+        matchEntity(path);
+
+      const rowId =
+        id || entity?.id;
+
+      if (
+        entity &&
+        entity.mode === "item" &&
+        rowId
+      ) {
+        const {
+          error,
+        } = await client
+          .from(entity.table)
+          .delete()
+          .eq("id", rowId);
+
+        if (error) {
+          throw error;
+        }
+
+        return null;
+      }
+
+      throw new Error(
+        `No Supabase mapping for DELETE ${path}`
+      );
+    },
   };
 
   /* =======================================================
-     GLOBAL API
-  ======================================================= */
+     GLOBALS
+     ======================================================= */
 
   window.Api = Api;
 
   window.API_TABLES =
     API_TABLES;
 
+  window.esc =
+    window.esc ||
+    function (value) {
+      if (
+        value === null ||
+        value === undefined
+      ) {
+        return "";
+      }
+
+      return String(value)
+        .replace(
+          /&/g,
+          "&amp;"
+        )
+        .replace(
+          /</g,
+          "&lt;"
+        )
+        .replace(
+          />/g,
+          "&gt;"
+        )
+        .replace(
+          /"/g,
+          "&quot;"
+        )
+        .replace(
+          /'/g,
+          "&#039;"
+        );
+    };
+
   /* =======================================================
-     HTML ESCAPE
-  ======================================================= */
+     INITIALIZE
+     ======================================================= */
 
-  window.esc = function (
-    value
-  ) {
-    if (
-      value === null ||
-      value === undefined
-    ) {
-      return "";
-    }
-
-    return String(value)
-      .replace(
-        /&/g,
-        "&amp;"
-      )
-      .replace(
-        /</g,
-        "&lt;"
-      )
-      .replace(
-        />/g,
-        "&gt;"
-      )
-      .replace(
-        /"/g,
-        "&quot;"
-      )
-      .replace(
-        /'/g,
-        "&#039;"
+  if (window.supabase) {
+    try {
+      getClient();
+    } catch (error) {
+      console.error(
+        "DragonByte Supabase initialization failed:",
+        error
       );
-  };
-
-  /* =======================================================
-     READY
-  ======================================================= */
+    }
+  }
 
   console.log(
     "DragonByte API loaded successfully."
   );
-
 })();
