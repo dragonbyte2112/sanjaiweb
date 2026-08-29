@@ -1,66 +1,511 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Events — DragonByte</title>
+
   <link rel="icon" href="/assets/img/logo-icon.png" />
   <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
+
 <body>
+
+  <!-- HEADER -->
   <div id="site-header"></div>
+
+
   <main>
-    <section style="padding:96px 0; background:linear-gradient(145deg, #f8fafc, #eff6ff);">
+
+    <!-- HERO -->
+    <section
+      style="
+        padding:96px 0;
+        background:linear-gradient(145deg, #f8fafc, #eff6ff);
+      "
+    >
+
       <div class="container text-center">
-        <span class="badge badge-blue mb-3">Events</span>
-        <h1 class="h1 mb-3">Community Events</h1>
-        <p class="lead" style="max-width:560px; margin:0 auto;">CTF competitions, workshops, meetups, and more — all in one place.</p>
+
+        <span class="badge badge-blue mb-3">
+          Events
+        </span>
+
+        <h1 class="h1 mb-3">
+          Community Events
+        </h1>
+
+        <p
+          class="lead"
+          style="max-width:560px; margin:0 auto;"
+        >
+          CTF competitions, workshops, meetups, and more —
+          all in one place.
+        </p>
+
       </div>
+
     </section>
+
+
+    <!-- EVENTS -->
     <section class="section">
+
       <div class="container">
-        <div id="events-list" class="grid grid-3"><div class="loading-text">Loading events…</div></div>
+
+        <div
+          id="events-list"
+          class="grid grid-3"
+        >
+
+          <div class="loading-text">
+            Loading events…
+          </div>
+
+        </div>
+
       </div>
+
     </section>
+
   </main>
+
+
+  <!-- FOOTER -->
   <div id="site-footer"></div>
 
+
+  <!-- =====================================
+       SUPABASE
+  ====================================== -->
+
+  <!-- 1. Supabase library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/assets/js/supabase.js"></script>
-<script src="/assets/js/supabase-data.js"></script>
-<script src="/assets/js/layout.js"></script>
+
+  <!-- 2. Your Supabase configuration -->
+  <script src="/assets/js/supabase.js"></script>
+
+  <!-- 3. Layout -->
+  <script src="/assets/js/layout.js"></script>
+
+
+  <!-- =====================================
+       EVENTS JAVASCRIPT
+  ====================================== -->
 
   <script>
+
+    /* =====================================
+       ESCAPE HTML
+    ====================================== */
+
+    function esc(value) {
+
+      if (
+        value === null ||
+        value === undefined
+      ) {
+        return "";
+      }
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+
+    /* =====================================
+       GET SUPABASE CLIENT
+    ====================================== */
+
+    function getSupabase() {
+
+      if (!window.supabaseClient) {
+
+        console.error(
+          "DragonByte: Supabase client not found."
+        );
+
+        throw new Error(
+          "Supabase client is not initialized."
+        );
+      }
+
+      return window.supabaseClient;
+    }
+
+
+    /* =====================================
+       LOAD EVENTS
+    ====================================== */
+
     async function loadEvents() {
-      const el = document.getElementById("events-list");
+
+      const el =
+        document.getElementById("events-list");
+
+
+      if (!el) {
+        return;
+      }
+
+
       try {
-        const events = await getEvents();
-        if (!events.length) {
-          el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
-            <div class="icon">📅</div>
-            <h3 class="h3 mb-1">No upcoming events yet</h3>
-            <p class="text-sm text-muted mb-4">Stay connected for what's next. New events are posted regularly.</p>
-            <a href="/join.html" class="btn btn-primary btn-sm">Join to get notified</a>
-          </div>`;
+
+        console.log(
+          "DragonByte: Loading events..."
+        );
+
+
+        const supabase =
+          getSupabase();
+
+
+        /* GET EVENTS */
+
+        const {
+          data,
+          error
+        } = await supabase
+          .from("events")
+          .select("*")
+          .order("date", {
+            ascending: true
+          });
+
+
+        /* DATABASE ERROR */
+
+        if (error) {
+
+          console.error(
+            "DragonByte events error:",
+            error
+          );
+
+          throw error;
+        }
+
+
+        const events =
+          data || [];
+
+
+        console.log(
+          "DragonByte events:",
+          events
+        );
+
+
+        /* =================================
+           NO EVENTS
+        ================================= */
+
+        if (events.length === 0) {
+
+          el.innerHTML = `
+
+            <div
+              class="empty-state"
+              style="grid-column:1/-1;"
+            >
+
+              <div class="icon">
+                📅
+              </div>
+
+              <h3 class="h3 mb-1">
+                No upcoming events yet
+              </h3>
+
+              <p
+                class="text-sm text-muted mb-4"
+              >
+                Stay connected for what's next.
+                New events are posted regularly.
+              </p>
+
+              <a
+                href="/join.html"
+                class="btn btn-primary btn-sm"
+              >
+                Join to get notified
+              </a>
+
+            </div>
+
+          `;
+
           return;
         }
-        el.innerHTML = events.map(e => `
-          <div class="card" style="padding:0; overflow:hidden;">
-            <div style="height:160px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #eff6ff, #e0f2fe); font-size:2.6rem;">📅</div>
-            <div style="padding:20px;">
-              <span class="badge badge-blue">${esc(e.category || "Event")}</span>
-              <h3 class="h3 mt-2 mb-1">${esc(e.title)}</h3>
-              <p class="text-sm text-muted mb-3">${esc(e.description || "")}</p>
-              <div class="text-xs text-muted mb-3">📍 ${esc(e.location || "TBA")} &nbsp;·&nbsp; 🗓 ${esc(e.date || "TBA")}</div>
-              ${e.registrationUrl ? `<a href="${esc(e.registrationUrl)}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Register</a>` : ""}
+
+
+        /* =================================
+           DISPLAY EVENTS
+        ================================= */
+
+        el.innerHTML = events
+          .map(function (event) {
+
+
+            const title =
+              event.title ||
+              event.name ||
+              "DragonByte Event";
+
+
+            const description =
+              event.description ||
+              event.details ||
+              "";
+
+
+            const category =
+              event.category ||
+              event.type ||
+              "Event";
+
+
+            const location =
+              event.location ||
+              event.venue ||
+              "TBA";
+
+
+            const date =
+              event.date ||
+              event.event_date ||
+              "TBA";
+
+
+            const registrationUrl =
+              event.registration_url ||
+              event.registrationUrl ||
+              event.register_url ||
+              event.url ||
+              "";
+
+
+            const image =
+              event.image_url ||
+              event.image ||
+              event.banner_url ||
+              "";
+
+
+            return `
+
+              <div
+                class="card"
+                style="
+                  padding:0;
+                  overflow:hidden;
+                  height:100%;
+                "
+              >
+
+                <!-- EVENT IMAGE -->
+
+                <div
+                  style="
+                    height:160px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    background:
+                      linear-gradient(
+                        135deg,
+                        #eff6ff,
+                        #e0f2fe
+                      );
+                    overflow:hidden;
+                  "
+                >
+
+                  ${
+                    image
+                      ? `
+                        <img
+                          src="${esc(image)}"
+                          alt="${esc(title)}"
+                          style="
+                            width:100%;
+                            height:100%;
+                            object-fit:cover;
+                          "
+                        />
+                      `
+                      : `
+                        <span
+                          style="
+                            font-size:2.6rem;
+                          "
+                        >
+                          📅
+                        </span>
+                      `
+                  }
+
+                </div>
+
+
+                <!-- EVENT CONTENT -->
+
+                <div
+                  style="padding:20px;"
+                >
+
+                  <span
+                    class="badge badge-blue"
+                  >
+                    ${esc(category)}
+                  </span>
+
+
+                  <h3
+                    class="h3 mt-2 mb-1"
+                  >
+                    ${esc(title)}
+                  </h3>
+
+
+                  ${
+                    description
+                      ? `
+                        <p
+                          class="
+                            text-sm
+                            text-muted
+                            mb-3
+                          "
+                        >
+                          ${esc(description)}
+                        </p>
+                      `
+                      : ""
+                  }
+
+
+                  <div
+                    class="
+                      text-xs
+                      text-muted
+                      mb-3
+                    "
+                  >
+
+                    📍 ${esc(location)}
+
+                    &nbsp;·&nbsp;
+
+                    🗓 ${esc(date)}
+
+                  </div>
+
+
+                  ${
+                    registrationUrl
+                      ? `
+                        <a
+                          href="${esc(registrationUrl)}"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="
+                            btn
+                            btn-primary
+                            btn-sm
+                          "
+                        >
+                          Register
+                        </a>
+                      `
+                      : `
+                        <span
+                          class="
+                            text-xs
+                            text-muted
+                          "
+                        >
+                          Registration details coming soon
+                        </span>
+                      `
+                  }
+
+                </div>
+
+              </div>
+
+            `;
+
+          })
+          .join("");
+
+
+      } catch (error) {
+
+        console.error(
+          "DragonByte: Failed to load events:",
+          error
+        );
+
+
+        el.innerHTML = `
+
+          <div
+            class="empty-state"
+            style="grid-column:1/-1;"
+          >
+
+            <div class="icon">
+              ⚠️
             </div>
+
+            <h3 class="h3 mb-1">
+              Couldn't load events
+            </h3>
+
+            <p
+              class="text-sm text-muted"
+            >
+              ${esc(
+                error?.message ||
+                "Unable to load events from Supabase."
+              )}
+            </p>
+
           </div>
-        `).join("");
-      } catch {
-        el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">⚠️</div><h3 class="h3 mb-1">Couldn't load events</h3><p class="text-sm text-muted">Is the backend server running?</p></div>`;
+
+        `;
+
       }
+
     }
-    document.addEventListener("DOMContentLoaded", loadEvents);
+
+
+    /* =====================================
+       INITIALIZE
+    ====================================== */
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      function () {
+
+        console.log(
+          "DragonByte Events page loaded."
+        );
+
+        loadEvents();
+
+      }
+    );
+
   </script>
+
 </body>
+
 </html>

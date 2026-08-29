@@ -2,62 +2,855 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
 
   <title>Contributors — DragonByte</title>
 
-  <link rel="icon" href="/assets/img/logo-icon.png" />
-  <link rel="stylesheet" href="/assets/css/style.css" />
+  <meta
+    name="description"
+    content="Meet the contributors building, sharing, and growing the DragonByte cybersecurity community."
+  />
+
+  <link
+    rel="icon"
+    href="/assets/img/logo-icon.png"
+  />
+
+  <link
+    rel="stylesheet"
+    href="/assets/css/style.css"
+  />
+
+  <!-- Page-specific styling -->
+  <style>
+    /* =========================================================
+       DRAGONBYTE CONTRIBUTORS PAGE
+       ========================================================= */
+
+    .contributors-page {
+      background: #ffffff;
+    }
+
+    /* Hero */
+    .contributors-hero {
+      position: relative;
+      overflow: hidden;
+      padding: 100px 0 90px;
+      background:
+        radial-gradient(
+          circle at 15% 20%,
+          rgba(37, 99, 235, 0.12),
+          transparent 32%
+        ),
+        radial-gradient(
+          circle at 85% 30%,
+          rgba(14, 165, 233, 0.12),
+          transparent 30%
+        ),
+        linear-gradient(
+          145deg,
+          #f8fafc 0%,
+          #eff6ff 50%,
+          #f8fafc 100%
+        );
+    }
+
+    .contributors-hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.45;
+      background-image:
+        linear-gradient(
+          rgba(37, 99, 235, 0.05) 1px,
+          transparent 1px
+        ),
+        linear-gradient(
+          90deg,
+          rgba(37, 99, 235, 0.05) 1px,
+          transparent 1px
+        );
+      background-size: 42px 42px;
+    }
+
+    .contributors-hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-logo {
+      width: 82px;
+      height: 82px;
+      margin: 0 auto 24px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      box-shadow:
+        0 15px 40px rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.08);
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      color: var(--primary);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .hero-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    .hero-description {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    /* Statistics */
+    .contributors-stats {
+      margin-top: -38px;
+      position: relative;
+      z-index: 5;
+    }
+
+    .stats-card {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow:
+        0 18px 50px rgba(15, 23, 42, 0.08);
+    }
+
+    .stat-item {
+      padding: 24px;
+      text-align: center;
+    }
+
+    .stat-item + .stat-item {
+      border-left: 1px solid #e2e8f0;
+    }
+
+    .stat-number {
+      display: block;
+      font-size: 1.8rem;
+      line-height: 1;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      display: block;
+      margin-top: 8px;
+      color: #64748b;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    /* Toolbar */
+    .contributors-toolbar {
+      margin-bottom: 34px;
+    }
+
+    .search-wrapper {
+      position: relative;
+      margin-bottom: 18px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 17px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #64748b;
+      pointer-events: none;
+      font-size: 1rem;
+    }
+
+    .contributors-search {
+      width: 100%;
+      height: 54px;
+      padding: 0 18px 0 46px;
+      border: 1px solid #dbe3ee;
+      border-radius: 14px;
+      outline: none;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 0.95rem;
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .contributors-search:focus {
+      border-color: var(--primary);
+      box-shadow:
+        0 0 0 4px rgba(37, 99, 235, 0.08);
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      appearance: none;
+      border: 1px solid #dbe3ee;
+      background: #ffffff;
+      color: #475569;
+      border-radius: 999px;
+      padding: 9px 15px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 700;
+      transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .filter-btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+    }
+
+    /* Result information */
+    .results-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .results-count {
+      color: #64748b;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .results-count strong {
+      color: #0f172a;
+    }
+
+    /* Contributor Grid */
+    .contributors-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    /* Contributor Card */
+    .contributor-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      padding: 30px 26px 25px;
+      text-align: center;
+      border: 1px solid #e2e8f0;
+      border-radius: 22px;
+      background: #ffffff;
+      box-shadow:
+        0 8px 28px rgba(15, 23, 42, 0.05);
+      transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
+      animation: contributorFadeIn 0.4s ease both;
+    }
+
+    .contributor-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(37, 99, 235, 0.25);
+      box-shadow:
+        0 18px 45px rgba(15, 23, 42, 0.10);
+    }
+
+    @keyframes contributorFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .contributor-top-line {
+      position: absolute;
+      top: 0;
+      left: 26px;
+      right: 26px;
+      height: 3px;
+      border-radius: 0 0 10px 10px;
+      background: linear-gradient(
+        90deg,
+        #2563eb,
+        #0ea5e9
+      );
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .contributor-card:hover .contributor-top-line {
+      opacity: 1;
+    }
+
+    /* Avatar */
+    .contributor-avatar {
+      width: 92px;
+      height: 92px;
+      margin: 0 auto 18px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border-radius: 50%;
+      border: 4px solid #ffffff;
+      background:
+        linear-gradient(
+          145deg,
+          #dbeafe,
+          #e0f2fe
+        );
+      box-shadow:
+        0 0 0 1px #dbe3ee,
+        0 10px 25px rgba(37, 99, 235, 0.10);
+      color: #2563eb;
+      font-size: 2rem;
+      font-weight: 800;
+    }
+
+    .contributor-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Name */
+    .contributor-name {
+      margin: 0;
+      color: #0f172a;
+      font-size: 1.12rem;
+      line-height: 1.35;
+      font-weight: 800;
+    }
+
+    .contributor-role {
+      margin: 7px 0 0;
+      color: var(--primary);
+      font-size: 0.82rem;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+
+    .contributor-bio {
+      margin: 15px 0 0;
+      color: #64748b;
+      font-size: 0.87rem;
+      line-height: 1.65;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Skills */
+    .skills {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 17px;
+    }
+
+    .skill-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 9px;
+      border-radius: 7px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .skill-more {
+      color: #64748b;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    /* Social links */
+    .contributor-socials {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: auto;
+      padding-top: 21px;
+    }
+
+    .social-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 7px 12px;
+      border: 1px solid #dbe3ee;
+      border-radius: 9px;
+      background: #ffffff;
+      color: #475569;
+      text-decoration: none;
+      font-size: 0.74rem;
+      font-weight: 700;
+      transition:
+        border-color 0.2s ease,
+        color 0.2s ease,
+        background 0.2s ease;
+    }
+
+    .social-link:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #f8fbff;
+    }
+
+    /* Empty state */
+    .contributors-empty {
+      grid-column: 1 / -1;
+      padding: 70px 25px;
+      text-align: center;
+      border: 1px dashed #cbd5e1;
+      border-radius: 20px;
+      background: #f8fafc;
+    }
+
+    .empty-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 18px;
+      background: #eff6ff;
+      color: var(--primary);
+      font-size: 1.6rem;
+      font-weight: 800;
+    }
+
+    /* Loading */
+    .loading-state {
+      grid-column: 1 / -1;
+      padding: 70px 25px;
+      text-align: center;
+    }
+
+    .loading-spinner {
+      width: 42px;
+      height: 42px;
+      margin: 0 auto 18px;
+      border: 3px solid #dbeafe;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* CTA */
+    .contributors-cta {
+      margin-top: 70px;
+      padding: 55px 30px;
+      overflow: hidden;
+      position: relative;
+      text-align: center;
+      border-radius: 26px;
+      background:
+        radial-gradient(
+          circle at 15% 20%,
+          rgba(255, 255, 255, 0.14),
+          transparent 30%
+        ),
+        radial-gradient(
+          circle at 85% 80%,
+          rgba(255, 255, 255, 0.12),
+          transparent 30%
+        ),
+        linear-gradient(
+          135deg,
+          #0f172a,
+          #172554
+        );
+      color: #ffffff;
+    }
+
+    .contributors-cta h2 {
+      margin: 0 0 12px;
+      color: #ffffff;
+      font-size: 1.8rem;
+    }
+
+    .contributors-cta p {
+      max-width: 650px;
+      margin: 0 auto 24px;
+      color: #cbd5e1;
+      line-height: 1.7;
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 11px 20px;
+      border-radius: 10px;
+      background: #ffffff;
+      color: #0f172a;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 800;
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Error */
+    .error-state {
+      grid-column: 1 / -1;
+      padding: 55px 25px;
+      text-align: center;
+      border: 1px solid #fecaca;
+      border-radius: 20px;
+      background: #fff7f7;
+    }
+
+    .error-icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+
+    /* Responsive */
+    @media (max-width: 1000px) {
+      .contributors-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 700px) {
+      .contributors-hero {
+        padding: 75px 0 70px;
+      }
+
+      .hero-logo {
+        width: 72px;
+        height: 72px;
+      }
+
+      .stats-card {
+        grid-template-columns: 1fr;
+      }
+
+      .stat-item + .stat-item {
+        border-left: 0;
+        border-top: 1px solid #e2e8f0;
+      }
+
+      .contributors-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .results-bar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .contributors-cta {
+        margin-top: 50px;
+        padding: 42px 22px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .contributor-card,
+      .filter-btn,
+      .social-link,
+      .cta-btn {
+        transition: none;
+      }
+
+      .loading-spinner {
+        animation: none;
+      }
+
+      .contributor-card {
+        animation: none;
+      }
+    }
+  </style>
 </head>
 
-<body>
+<body class="contributors-page">
 
+  <!-- =========================================================
+       HEADER
+       ========================================================= -->
   <div id="site-header"></div>
+
 
   <main>
 
-    <!-- Hero -->
-    <section
-      style="
-        padding:96px 0;
-        background:linear-gradient(145deg,#f8fafc,#eff6ff);
-      "
-    >
-      <div class="container-sm text-center">
+    <!-- =======================================================
+         HERO
+         ======================================================= -->
+    <section class="contributors-hero">
 
-        <div style="font-size:3rem;margin-bottom:20px;">
-          ⭐
+      <div class="container-sm text-center contributors-hero-content">
+
+        <div class="hero-logo">
+          <img
+            src="/assets/img/logo-icon.png"
+            alt="DragonByte"
+            onerror="this.style.display='none'; this.parentElement.textContent='DB';"
+          />
         </div>
 
-        <p class="eyebrow">
-          COMMUNITY
-        </p>
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          DRAGONBYTE COMMUNITY
+        </div>
 
         <h1 class="h1 mb-3">
-          DragonByte Contributors
+          Contributors
         </h1>
 
-        <p class="lead">
-          Meet the people who contribute their skills,
-          knowledge, projects, and ideas to DragonByte.
+        <p class="lead hero-description">
+          Meet the people who share their skills, knowledge,
+          projects, research, and ideas to help build a stronger
+          cybersecurity community.
         </p>
 
       </div>
+
     </section>
 
 
-    <!-- Contributors -->
+    <!-- =======================================================
+         STATISTICS
+         ======================================================= -->
+    <section class="contributors-stats">
+
+      <div class="container">
+
+        <div class="stats-card">
+
+          <div class="stat-item">
+            <span
+              id="contributors-count"
+              class="stat-number"
+            >
+              —
+            </span>
+
+            <span class="stat-label">
+              Contributors
+            </span>
+          </div>
+
+          <div class="stat-item">
+            <span
+              id="categories-count"
+              class="stat-number"
+            >
+              —
+            </span>
+
+            <span class="stat-label">
+              Focus Areas
+            </span>
+          </div>
+
+          <div class="stat-item">
+            <span
+              id="profiles-count"
+              class="stat-number"
+            >
+              —
+            </span>
+
+            <span class="stat-label">
+              Social Profiles
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         CONTRIBUTORS
+         ======================================================= -->
     <section class="section">
 
       <div class="container">
 
+        <!-- Toolbar -->
+        <div class="contributors-toolbar">
+
+          <div class="search-wrapper">
+
+            <span
+              class="search-icon"
+              aria-hidden="true"
+            >
+              🔍
+            </span>
+
+            <input
+              id="contributors-search"
+              class="contributors-search"
+              type="search"
+              placeholder="Search contributors, roles, skills..."
+              autocomplete="off"
+              aria-label="Search contributors"
+            />
+
+          </div>
+
+
+          <!-- Filters -->
+          <div
+            id="filter-row"
+            class="filter-row"
+            aria-label="Contributor filters"
+          >
+            <button
+              type="button"
+              class="filter-btn active"
+              data-filter="all"
+            >
+              All
+            </button>
+          </div>
+
+        </div>
+
+
+        <!-- Result count -->
+        <div class="results-bar">
+
+          <div
+            id="results-count"
+            class="results-count"
+          >
+            Loading contributors...
+          </div>
+
+        </div>
+
+
+        <!-- Contributor cards -->
         <div
           id="contributors-list"
-          class="grid grid-3"
+          class="contributors-grid"
         >
-          <div class="loading-text">
-            Loading contributors…
+
+          <div class="loading-state">
+
+            <div class="loading-spinner"></div>
+
+            <h3 class="h3 mb-1">
+              Loading contributors
+            </h3>
+
+            <p class="text-sm text-muted">
+              Connecting to the DragonByte community...
+            </p>
+
           </div>
+
+        </div>
+
+
+        <!-- ===================================================
+             CTA
+             =================================================== -->
+        <div class="contributors-cta">
+
+          <h2>
+            Want to contribute to DragonByte?
+          </h2>
+
+          <p>
+            Share your cybersecurity knowledge, build projects,
+            create learning resources, participate in CTFs,
+            or help other members grow.
+          </p>
+
+          <a
+            href="/join.html"
+            class="cta-btn"
+          >
+            Become a Contributor →
+          </a>
+
         </div>
 
       </div>
@@ -67,21 +860,42 @@
   </main>
 
 
+  <!-- =========================================================
+       FOOTER
+       ========================================================= -->
   <div id="site-footer"></div>
 
 
-  <!-- Supabase -->
+  <!-- =========================================================
+       SUPABASE
+       ========================================================= -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script src="/assets/js/supabase.js"></script>
+
   <script src="/assets/js/layout.js"></script>
 
 
+  <!-- =========================================================
+       CONTRIBUTORS LOGIC
+       ========================================================= -->
   <script>
+
+    let allContributors = [];
+    let activeFilter = "all";
+    let searchTerm = "";
+
+
+    /* =========================================================
+       HTML ESCAPE
+       ========================================================= */
 
     function esc(value) {
 
-      if (value === null || value === undefined) {
+      if (
+        value === null ||
+        value === undefined
+      ) {
         return "";
       }
 
@@ -95,16 +909,27 @@
     }
 
 
-    function getValue(row, names, fallback = "") {
+    /* =========================================================
+       VALUE HELPER
+       ========================================================= */
+
+    function getValue(
+      row,
+      names,
+      fallback = ""
+    ) {
 
       for (const name of names) {
 
         if (
+          row &&
           row[name] !== undefined &&
           row[name] !== null &&
           row[name] !== ""
         ) {
+
           return row[name];
+
         }
 
       }
@@ -114,10 +939,761 @@
     }
 
 
+    /* =========================================================
+       NORMALIZE ARRAY / SKILLS
+       ========================================================= */
+
+    function normalizeSkills(value) {
+
+      if (!value) {
+        return [];
+      }
+
+      if (Array.isArray(value)) {
+
+        return value
+          .map(item => String(item).trim())
+          .filter(Boolean);
+
+      }
+
+      if (typeof value === "string") {
+
+        return value
+          .split(/[,\|]/)
+          .map(item => item.trim())
+          .filter(Boolean);
+
+      }
+
+      return [];
+
+    }
+
+
+    /* =========================================================
+       NORMALIZE CONTRIBUTOR
+       ========================================================= */
+
+    function normalizeContributor(row) {
+
+      const name = getValue(
+        row,
+        [
+          "name",
+          "full_name",
+          "fullName",
+          "username",
+          "display_name",
+          "displayName"
+        ],
+        "DragonByte Contributor"
+      );
+
+
+      const role = getValue(
+        row,
+        [
+          "role",
+          "position",
+          "title",
+          "designation"
+        ],
+        "Contributor"
+      );
+
+
+      const bio = getValue(
+        row,
+        [
+          "bio",
+          "about",
+          "description"
+        ],
+        "DragonByte community contributor."
+      );
+
+
+      const avatar = getValue(
+        row,
+        [
+          "avatar_url",
+          "avatarUrl",
+          "image_url",
+          "imageUrl",
+          "profile_image",
+          "profileImage",
+          "photo_url",
+          "photoUrl"
+        ],
+        ""
+      );
+
+
+      const github = getValue(
+        row,
+        [
+          "github_url",
+          "githubUrl",
+          "github"
+        ],
+        ""
+      );
+
+
+      const linkedin = getValue(
+        row,
+        [
+          "linkedin_url",
+          "linkedinUrl",
+          "linkedin"
+        ],
+        ""
+      );
+
+
+      const category = getValue(
+        row,
+        [
+          "category",
+          "type",
+          "focus",
+          "specialization",
+          "domain"
+        ],
+        "General"
+      );
+
+
+      const skillsValue = getValue(
+        row,
+        [
+          "skills",
+          "skill",
+          "expertise",
+          "technologies",
+          "tags"
+        ],
+        []
+      );
+
+
+      const skills = normalizeSkills(
+        skillsValue
+      );
+
+
+      return {
+        raw: row,
+        name: String(name),
+        role: String(role),
+        bio: String(bio),
+        avatar: String(avatar),
+        github: String(github),
+        linkedin: String(linkedin),
+        category: String(category),
+        skills
+      };
+
+    }
+
+
+    /* =========================================================
+       VALID URL
+       ========================================================= */
+
+    function safeUrl(value) {
+
+      if (!value) {
+        return "";
+      }
+
+      try {
+
+        const url = new URL(
+          String(value),
+          window.location.origin
+        );
+
+        if (
+          url.protocol === "http:" ||
+          url.protocol === "https:"
+        ) {
+
+          return url.href;
+
+        }
+
+      } catch (error) {
+
+        console.warn(
+          "Invalid URL:",
+          value
+        );
+
+      }
+
+      return "";
+
+    }
+
+
+    /* =========================================================
+       INITIALS
+       ========================================================= */
+
+    function getInitials(name) {
+
+      const cleanName = String(name || "")
+        .trim();
+
+      if (!cleanName) {
+        return "DB";
+      }
+
+      const words = cleanName
+        .split(/\s+/)
+        .filter(Boolean);
+
+      if (words.length === 1) {
+
+        return words[0]
+          .charAt(0)
+          .toUpperCase();
+
+      }
+
+      return (
+        words[0].charAt(0) +
+        words[words.length - 1].charAt(0)
+      ).toUpperCase();
+
+    }
+
+
+    /* =========================================================
+       CATEGORY LIST
+       ========================================================= */
+
+    function getCategories() {
+
+      const categories = [
+        ...new Set(
+          allContributors
+            .map(c => c.category)
+            .filter(Boolean)
+        )
+      ];
+
+      return categories.sort(
+        (a, b) =>
+          a.localeCompare(b)
+      );
+
+    }
+
+
+    /* =========================================================
+       RENDER FILTERS
+       ========================================================= */
+
+    function renderFilters() {
+
+      const filterRow =
+        document.getElementById(
+          "filter-row"
+        );
+
+      const categories =
+        getCategories();
+
+      filterRow.innerHTML = `
+        <button
+          type="button"
+          class="filter-btn ${activeFilter === "all" ? "active" : ""}"
+          data-filter="all"
+        >
+          All
+        </button>
+
+        ${categories.map(category => `
+          <button
+            type="button"
+            class="filter-btn ${activeFilter === category ? "active" : ""}"
+            data-filter="${esc(category)}"
+          >
+            ${esc(category)}
+          </button>
+        `).join("")}
+      `;
+
+
+      filterRow
+        .querySelectorAll(".filter-btn")
+        .forEach(button => {
+
+          button.addEventListener(
+            "click",
+            () => {
+
+              activeFilter =
+                button.dataset.filter;
+
+              renderFilters();
+              renderContributors();
+
+            }
+          );
+
+        });
+
+    }
+
+
+    /* =========================================================
+       FILTER CONTRIBUTORS
+       ========================================================= */
+
+    function getFilteredContributors() {
+
+      const term =
+        searchTerm
+          .trim()
+          .toLowerCase();
+
+
+      return allContributors.filter(
+        contributor => {
+
+          const matchesFilter =
+            activeFilter === "all" ||
+            contributor.category
+              .toLowerCase() ===
+              activeFilter.toLowerCase();
+
+
+          if (!matchesFilter) {
+            return false;
+          }
+
+
+          if (!term) {
+            return true;
+          }
+
+
+          const searchableText = [
+            contributor.name,
+            contributor.role,
+            contributor.bio,
+            contributor.category,
+            ...contributor.skills
+          ]
+            .join(" ")
+            .toLowerCase();
+
+
+          return searchableText.includes(
+            term
+          );
+
+        }
+      );
+
+    }
+
+
+    /* =========================================================
+       RENDER AVATAR
+       ========================================================= */
+
+    function renderAvatar(contributor) {
+
+      const initials =
+        getInitials(
+          contributor.name
+        );
+
+
+      const avatarUrl =
+        safeUrl(
+          contributor.avatar
+        );
+
+
+      if (!avatarUrl) {
+
+        return `
+          <div class="contributor-avatar">
+            ${esc(initials)}
+          </div>
+        `;
+
+      }
+
+
+      return `
+        <div class="contributor-avatar">
+
+          <img
+            src="${esc(avatarUrl)}"
+            alt="${esc(contributor.name)}"
+            loading="lazy"
+            onerror="
+              this.style.display='none';
+              this.parentElement.textContent='${esc(initials)}';
+            "
+          />
+
+        </div>
+      `;
+
+    }
+
+
+    /* =========================================================
+       RENDER SKILLS
+       ========================================================= */
+
+    function renderSkills(skills) {
+
+      if (!skills || !skills.length) {
+        return "";
+      }
+
+
+      const visibleSkills =
+        skills.slice(0, 4);
+
+      const remaining =
+        Math.max(
+          skills.length - 4,
+          0
+        );
+
+
+      return `
+        <div class="skills">
+
+          ${visibleSkills.map(skill => `
+            <span class="skill-tag">
+              ${esc(skill)}
+            </span>
+          `).join("")}
+
+          ${
+            remaining > 0
+              ? `
+                <span class="skill-more">
+                  +${remaining}
+                </span>
+              `
+              : ""
+          }
+
+        </div>
+      `;
+
+    }
+
+
+    /* =========================================================
+       RENDER SOCIAL LINKS
+       ========================================================= */
+
+    function renderSocialLinks(
+      contributor
+    ) {
+
+      const github =
+        safeUrl(
+          contributor.github
+        );
+
+      const linkedin =
+        safeUrl(
+          contributor.linkedin
+        );
+
+
+      if (!github && !linkedin) {
+        return "";
+      }
+
+
+      return `
+        <div class="contributor-socials">
+
+          ${
+            github
+              ? `
+                <a
+                  href="${esc(github)}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="social-link"
+                  aria-label="GitHub profile"
+                >
+                  <span>⌘</span>
+                  GitHub
+                </a>
+              `
+              : ""
+          }
+
+          ${
+            linkedin
+              ? `
+                <a
+                  href="${esc(linkedin)}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="social-link"
+                  aria-label="LinkedIn profile"
+                >
+                  <span>in</span>
+                  LinkedIn
+                </a>
+              `
+              : ""
+          }
+
+        </div>
+      `;
+
+    }
+
+
+    /* =========================================================
+       RENDER CARDS
+       ========================================================= */
+
+    function renderContributors() {
+
+      const el =
+        document.getElementById(
+          "contributors-list"
+        );
+
+
+      const resultsCount =
+        document.getElementById(
+          "results-count"
+        );
+
+
+      const filtered =
+        getFilteredContributors();
+
+
+      resultsCount.innerHTML = `
+        Showing
+        <strong>${filtered.length}</strong>
+        of
+        <strong>${allContributors.length}</strong>
+        contributors
+      `;
+
+
+      if (!filtered.length) {
+
+        el.innerHTML = `
+
+          <div class="contributors-empty">
+
+            <div class="empty-icon">
+              🔍
+            </div>
+
+            <h3 class="h3 mb-1">
+              No contributors found
+            </h3>
+
+            <p class="text-sm text-muted mb-4">
+              Try another search term or select
+              a different category.
+            </p>
+
+            <button
+              type="button"
+              id="clear-search"
+              class="btn btn-primary btn-sm"
+            >
+              Clear Search
+            </button>
+
+          </div>
+
+        `;
+
+
+        const clearButton =
+          document.getElementById(
+            "clear-search"
+          );
+
+
+        clearButton.addEventListener(
+          "click",
+          () => {
+
+            searchTerm = "";
+            activeFilter = "all";
+
+            document.getElementById(
+              "contributors-search"
+            ).value = "";
+
+            renderFilters();
+            renderContributors();
+
+          }
+        );
+
+
+        return;
+
+      }
+
+
+      el.innerHTML =
+        filtered
+          .map(
+            (
+              contributor,
+              index
+            ) => `
+
+              <article
+                class="contributor-card"
+                style="animation-delay:${Math.min(index * 0.04, 0.4)}s"
+              >
+
+                <div class="contributor-top-line"></div>
+
+                ${renderAvatar(contributor)}
+
+                <h3 class="contributor-name">
+                  ${esc(contributor.name)}
+                </h3>
+
+                <p class="contributor-role">
+                  ${esc(contributor.role)}
+                </p>
+
+                ${
+                  contributor.category
+                    ? `
+                      <span
+                        class="skill-tag"
+                        style="
+                          display:inline-flex;
+                          margin:12px auto 0;
+                        "
+                      >
+                        ${esc(contributor.category)}
+                      </span>
+                    `
+                    : ""
+                }
+
+                <p class="contributor-bio">
+                  ${esc(contributor.bio)}
+                </p>
+
+                ${renderSkills(
+                  contributor.skills
+                )}
+
+                ${renderSocialLinks(
+                  contributor
+                )}
+
+              </article>
+
+            `
+          )
+          .join("");
+
+    }
+
+
+    /* =========================================================
+       UPDATE STATISTICS
+       ========================================================= */
+
+    function updateStatistics() {
+
+      const contributorCount =
+        allContributors.length;
+
+
+      const categories =
+        getCategories();
+
+
+      let socialProfiles = 0;
+
+
+      allContributors.forEach(
+        contributor => {
+
+          if (
+            safeUrl(
+              contributor.github
+            )
+          ) {
+
+            socialProfiles++;
+
+          }
+
+
+          if (
+            safeUrl(
+              contributor.linkedin
+            )
+          ) {
+
+            socialProfiles++;
+
+          }
+
+        }
+      );
+
+
+      document.getElementById(
+        "contributors-count"
+      ).textContent =
+        contributorCount;
+
+
+      document.getElementById(
+        "categories-count"
+      ).textContent =
+        categories.length;
+
+
+      document.getElementById(
+        "profiles-count"
+      ).textContent =
+        socialProfiles;
+
+    }
+
+
+    /* =========================================================
+       LOAD CONTRIBUTORS
+       ========================================================= */
+
     async function loadContributors() {
 
       const el =
-        document.getElementById("contributors-list");
+        document.getElementById(
+          "contributors-list"
+        );
+
 
       try {
 
@@ -126,8 +1702,20 @@
         );
 
 
+        if (
+          typeof supabaseClient ===
+          "undefined"
+        ) {
+
+          throw new Error(
+            "Supabase client is not available. Check /assets/js/supabase.js"
+          );
+
+        }
+
+
         const {
-          data: contributors,
+          data,
           error
         } = await supabaseClient
           .from("contributors")
@@ -148,27 +1736,31 @@
 
         console.log(
           "DragonByte: Contributors received:",
-          contributors
+          data
         );
 
 
+        allContributors =
+          (data || []).map(
+            normalizeContributor
+          );
+
+
+        updateStatistics();
+        renderFilters();
+        renderContributors();
+
+
         if (
-          !contributors ||
-          contributors.length === 0
+          allContributors.length === 0
         ) {
 
           el.innerHTML = `
 
-            <div
-              class="empty-state"
-              style="grid-column:1/-1;"
-            >
+            <div class="contributors-empty">
 
-              <div
-                class="icon"
-                style="font-size:3rem;"
-              >
-                ⭐
+              <div class="empty-icon">
+                DB
               </div>
 
               <h3 class="h3 mb-1">
@@ -176,201 +1768,31 @@
               </h3>
 
               <p class="text-sm text-muted mb-4">
-                Contributors will appear here
-                as the community grows.
+                Contributor profiles will appear here
+                as the DragonByte community grows.
               </p>
 
               <a
                 href="/join.html"
                 class="btn btn-primary btn-sm"
               >
-                Join DragonByte
+                Become a Contributor
               </a>
 
             </div>
 
           `;
 
+
+          document.getElementById(
+            "results-count"
+          ).textContent =
+            "No contributors available";
+
+
           return;
 
         }
-
-
-        el.innerHTML = contributors.map(c => {
-
-          const name = getValue(
-            c,
-            [
-              "name",
-              "full_name",
-              "fullName",
-              "username"
-            ],
-            "DragonByte Contributor"
-          );
-
-
-          const role = getValue(
-            c,
-            [
-              "role",
-              "position",
-              "title",
-              "designation"
-            ],
-            "Contributor"
-          );
-
-
-          const bio = getValue(
-            c,
-            [
-              "bio",
-              "about",
-              "description"
-            ],
-            "DragonByte community contributor."
-          );
-
-
-          const github = getValue(
-            c,
-            [
-              "github_url",
-              "githubUrl",
-              "github"
-            ],
-            ""
-          );
-
-
-          const linkedin = getValue(
-            c,
-            [
-              "linkedin_url",
-              "linkedinUrl",
-              "linkedin"
-            ],
-            ""
-          );
-
-
-          return `
-
-            <div
-              class="card"
-              style="
-                padding:28px;
-                text-align:center;
-              "
-            >
-
-              <div
-                style="
-                  width:80px;
-                  height:80px;
-                  margin:0 auto 18px;
-                  border-radius:50%;
-                  display:flex;
-                  align-items:center;
-                  justify-content:center;
-                  background:linear-gradient(
-                    135deg,
-                    #dbeafe,
-                    #e0f2fe
-                  );
-                  font-size:2rem;
-                  font-weight:700;
-                  color:#1d4ed8;
-                "
-              >
-                ⭐
-              </div>
-
-
-              <h3 class="h3 mb-1">
-                ${esc(name)}
-              </h3>
-
-
-              <p
-                class="text-sm"
-                style="
-                  color:var(--primary);
-                  font-weight:600;
-                "
-              >
-                ${esc(role)}
-              </p>
-
-
-              <p
-                class="text-sm text-muted"
-                style="
-                  margin-top:12px;
-                  line-height:1.6;
-                "
-              >
-                ${esc(bio)}
-              </p>
-
-
-              ${
-                github || linkedin
-                  ? `
-
-                    <div
-                      style="
-                        display:flex;
-                        justify-content:center;
-                        gap:8px;
-                        margin-top:18px;
-                      "
-                    >
-
-                      ${
-                        github
-                          ? `
-                            <a
-                              href="${esc(github)}"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              class="btn btn-outline btn-sm"
-                            >
-                              GitHub
-                            </a>
-                          `
-                          : ""
-                      }
-
-
-                      ${
-                        linkedin
-                          ? `
-                            <a
-                              href="${esc(linkedin)}"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              class="btn btn-outline btn-sm"
-                            >
-                              LinkedIn
-                            </a>
-                          `
-                          : ""
-                      }
-
-                    </div>
-
-                  `
-                  : ""
-              }
-
-            </div>
-
-          `;
-
-        }).join("");
-
 
       } catch (error) {
 
@@ -380,17 +1802,32 @@
         );
 
 
+        document.getElementById(
+          "contributors-count"
+        ).textContent = "0";
+
+
+        document.getElementById(
+          "categories-count"
+        ).textContent = "0";
+
+
+        document.getElementById(
+          "profiles-count"
+        ).textContent = "0";
+
+
+        document.getElementById(
+          "results-count"
+        ).textContent =
+          "Unable to load contributors";
+
+
         el.innerHTML = `
 
-          <div
-            class="empty-state"
-            style="grid-column:1/-1;"
-          >
+          <div class="error-state">
 
-            <div
-              class="icon"
-              style="font-size:3rem;"
-            >
+            <div class="error-icon">
               ⚠️
             </div>
 
@@ -399,24 +1836,97 @@
             </h3>
 
             <p class="text-sm text-muted">
+              There was a problem connecting
+              to the DragonByte community database.
+            </p>
+
+            <p
+              class="text-xs text-muted"
+              style="
+                max-width:650px;
+                margin:12px auto 0;
+                word-break:break-word;
+              "
+            >
               ${esc(
                 error?.message ||
                 "Supabase connection error"
               )}
             </p>
 
+            <button
+              type="button"
+              id="retry-load"
+              class="btn btn-primary btn-sm"
+              style="margin-top:20px;"
+            >
+              Try Again
+            </button>
+
           </div>
 
         `;
+
+
+        const retryButton =
+          document.getElementById(
+            "retry-load"
+          );
+
+
+        if (retryButton) {
+
+          retryButton.addEventListener(
+            "click",
+            loadContributors
+          );
+
+        }
 
       }
 
     }
 
 
+    /* =========================================================
+       SEARCH
+       ========================================================= */
+
+    function setupSearch() {
+
+      const search =
+        document.getElementById(
+          "contributors-search"
+        );
+
+
+      search.addEventListener(
+        "input",
+        event => {
+
+          searchTerm =
+            event.target.value || "";
+
+          renderContributors();
+
+        }
+      );
+
+    }
+
+
+    /* =========================================================
+       START PAGE
+       ========================================================= */
+
     document.addEventListener(
       "DOMContentLoaded",
-      loadContributors
+      () => {
+
+        setupSearch();
+        loadContributors();
+
+      }
     );
 
   </script>

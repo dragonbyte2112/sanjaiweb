@@ -211,10 +211,13 @@
        SUPABASE
   ========================== -->
 
+  <!-- Supabase library MUST load first -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- Your Supabase configuration MUST load second -->
   <script src="/assets/js/supabase.js"></script>
 
+  <!-- Layout MUST load after Supabase -->
   <script src="/assets/js/layout.js"></script>
 
 
@@ -225,110 +228,95 @@
   <script>
 
     /* =========================================
-       ESCAPE HTML
+       HTML ESCAPE
     ========================================= */
 
-    function esc(str) {
+    function esc(value) {
 
-      if (str === null || str === undefined) {
+      if (value === null || value === undefined) {
         return "";
       }
 
-      return String(str)
+      return String(value)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-
     }
 
 
     /* =========================================
-       LOAD CONTRIBUTORS / FEATURED MEMBERS
+       GET SUPABASE CLIENT
+    ========================================= */
+
+    function getSupabase() {
+
+      if (!window.supabaseClient) {
+
+        console.error(
+          "DragonByte: Supabase client not found."
+        );
+
+        throw new Error(
+          "Supabase client is not initialized."
+        );
+      }
+
+      return window.supabaseClient;
+    }
+
+
+    /* =========================================
+       LOAD CONTRIBUTORS
     ========================================= */
 
     async function loadContributors() {
 
-      const el =
-        document.getElementById(
-          "community-contributors"
-        );
+      const el = document.getElementById(
+        "community-contributors"
+      );
 
       if (!el) {
-        console.error(
-          "community-contributors element not found"
-        );
-
         return;
       }
-
 
       try {
 
         console.log(
-          "DragonByte: Loading contributors from Supabase..."
+          "DragonByte: Loading contributors..."
         );
 
-
-        /* -----------------------------------------
-           CHECK SUPABASE CLIENT
-        ----------------------------------------- */
-
-        if (
-          typeof supabaseClient === "undefined" ||
-          !supabaseClient
-        ) {
-
-          throw new Error(
-            "Supabase client is not initialized."
-          );
-
-        }
-
-
-        /* -----------------------------------------
-           GET CONTRIBUTORS
-        ----------------------------------------- */
+        const supabase = getSupabase();
 
         const {
-          data: contributors,
+          data,
           error
-        } = await supabaseClient
+        } = await supabase
           .from("contributors")
           .select("*");
-
-
-        /* -----------------------------------------
-           SUPABASE ERROR
-        ----------------------------------------- */
 
         if (error) {
 
           console.error(
-            "Supabase contributors error:",
+            "DragonByte contributors error:",
             error
           );
 
           throw error;
-
         }
 
+        const contributors = data || [];
 
         console.log(
-          "Contributors received:",
+          "DragonByte contributors:",
           contributors
         );
 
 
-        /* -----------------------------------------
-           EMPTY RESULT
-        ----------------------------------------- */
+        /* EMPTY */
 
-        if (
-          !contributors ||
-          contributors.length === 0
-        ) {
+        if (contributors.length === 0) {
 
           el.innerHTML = `
 
@@ -355,16 +343,13 @@
           `;
 
           return;
-
         }
 
 
-        /* -----------------------------------------
-           DISPLAY CONTRIBUTORS
-        ----------------------------------------- */
+        /* DISPLAY */
 
         el.innerHTML = contributors
-          .map(c => {
+          .map(function (c) {
 
             const name =
               c.name ||
@@ -372,19 +357,16 @@
               c.username ||
               "Community Member";
 
-
             const role =
               c.role ||
               c.position ||
               c.title ||
               "DragonByte Member";
 
-
             const bio =
               c.bio ||
               c.description ||
               "";
-
 
             const avatar =
               c.avatar_url ||
@@ -483,10 +465,9 @@
       } catch (error) {
 
         console.error(
-          "Failed to load contributors:",
+          "DragonByte: Failed to load contributors:",
           error
         );
-
 
         el.innerHTML = `
 
@@ -513,11 +494,8 @@
           </div>
 
         `;
-
       }
-
     }
-
 
 
     /* =========================================
@@ -526,87 +504,50 @@
 
     async function loadTestimonials() {
 
-      const el =
-        document.getElementById(
-          "community-testimonials"
-        );
+      const el = document.getElementById(
+        "community-testimonials"
+      );
 
       if (!el) {
-
-        console.error(
-          "community-testimonials element not found"
-        );
-
         return;
-
       }
-
 
       try {
 
         console.log(
-          "DragonByte: Loading testimonials from Supabase..."
+          "DragonByte: Loading testimonials..."
         );
 
-
-        /* -----------------------------------------
-           CHECK SUPABASE CLIENT
-        ----------------------------------------- */
-
-        if (
-          typeof supabaseClient === "undefined" ||
-          !supabaseClient
-        ) {
-
-          throw new Error(
-            "Supabase client is not initialized."
-          );
-
-        }
-
-
-        /* -----------------------------------------
-           GET TESTIMONIALS
-        ----------------------------------------- */
+        const supabase = getSupabase();
 
         const {
-          data: testimonials,
+          data,
           error
-        } = await supabaseClient
+        } = await supabase
           .from("testimonials")
           .select("*");
-
-
-        /* -----------------------------------------
-           SUPABASE ERROR
-        ----------------------------------------- */
 
         if (error) {
 
           console.error(
-            "Supabase testimonials error:",
+            "DragonByte testimonials error:",
             error
           );
 
           throw error;
-
         }
 
+        const testimonials = data || [];
 
         console.log(
-          "Testimonials received:",
+          "DragonByte testimonials:",
           testimonials
         );
 
 
-        /* -----------------------------------------
-           EMPTY RESULT
-        ----------------------------------------- */
+        /* EMPTY */
 
-        if (
-          !testimonials ||
-          testimonials.length === 0
-        ) {
+        if (testimonials.length === 0) {
 
           el.innerHTML = `
 
@@ -632,16 +573,13 @@
           `;
 
           return;
-
         }
 
 
-        /* -----------------------------------------
-           DISPLAY TESTIMONIALS
-        ----------------------------------------- */
+        /* DISPLAY */
 
         el.innerHTML = testimonials
-          .map(t => {
+          .map(function (t) {
 
             const name =
               t.name ||
@@ -649,13 +587,11 @@
               t.full_name ||
               "Community Member";
 
-
             const role =
               t.role ||
               t.position ||
               t.title ||
               "";
-
 
             const quote =
               t.quote ||
@@ -675,8 +611,6 @@
                 "
               >
 
-                <!-- QUOTE -->
-
                 <div
                   style="
                     font-size:32px;
@@ -689,19 +623,13 @@
                 </div>
 
 
-                <!-- TESTIMONIAL -->
-
                 <p
                   class="text-sm mb-4"
-                  style="
-                    line-height:1.7;
-                  "
+                  style="line-height:1.7;"
                 >
                   "${esc(quote)}"
                 </p>
 
-
-                <!-- NAME -->
 
                 <div
                   class="text-sm"
@@ -710,8 +638,6 @@
                   ${esc(name)}
                 </div>
 
-
-                <!-- ROLE -->
 
                 ${
                   role
@@ -734,10 +660,9 @@
       } catch (error) {
 
         console.error(
-          "Failed to load testimonials:",
+          "DragonByte: Failed to load testimonials:",
           error
         );
-
 
         el.innerHTML = `
 
@@ -764,11 +689,8 @@
           </div>
 
         `;
-
       }
-
     }
-
 
 
     /* =========================================
@@ -782,7 +704,6 @@
         console.log(
           "DragonByte Community page loaded."
         );
-
 
         loadContributors();
 
