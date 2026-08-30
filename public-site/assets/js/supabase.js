@@ -6,10 +6,10 @@
   "use strict";
 
   const SUPABASE_URL =
-    "https://lfwwslohugqojibcpkys.supabase.co";
+    "https://khjmouwldnjwzvdxnbty.supabase.co";
 
   const SUPABASE_PUBLISHABLE_KEY =
-    "sb_publishable_4OBUm9wgJwRAqN9hi8QLOw_5WYgQcUG";
+    "sb_publishable_NHxQgBGJ4CrUFhiwRyT0fw_vMnibVQI";
 
   /* -------------------------------------------------------
      Check Supabase library
