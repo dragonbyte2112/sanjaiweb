@@ -1,8 +1,10 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Projects — DragonByte</title>
 
   <link rel="icon" href="/assets/img/logo-icon.png" />
@@ -11,88 +13,188 @@
 
 <body>
 
+  <!-- HEADER -->
   <div id="site-header"></div>
 
   <main>
 
-    <section style="padding:96px 0; background:linear-gradient(145deg, #f8fafc, #eff6ff);">
+    <!-- HERO -->
+    <section
+      style="
+        padding: 96px 0;
+        background: linear-gradient(145deg, #f8fafc, #eff6ff);
+      "
+    >
       <div class="container text-center">
 
-        <span class="badge badge-blue mb-3">Open Source</span>
+        <span class="badge badge-blue mb-3">
+          Open Source
+        </span>
 
         <h1 class="h1 mb-3">
           Community Projects
         </h1>
 
-        <p class="lead" style="max-width:560px; margin:0 auto;">
-          Real-world security tools and open-source projects built by the DragonByte community.
+        <p
+          class="lead"
+          style="
+            max-width:560px;
+            margin:0 auto;
+          "
+        >
+          Real-world security tools and open-source projects
+          built by the DragonByte community.
         </p>
 
       </div>
     </section>
 
 
+    <!-- PROJECTS -->
     <section class="section">
+
       <div class="container">
 
-        <div id="projects-list" class="grid grid-3">
+        <div
+          id="projects-list"
+          class="grid grid-3"
+        >
+
           <div class="loading-text">
             Loading projects…
           </div>
+
         </div>
 
       </div>
+
     </section>
 
   </main>
 
+
+  <!-- FOOTER -->
   <div id="site-footer"></div>
 
 
-  <!-- Supabase library -->
+  <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
- <script src="/assets/js/supabase.js"></script>
-<script src="/assets/js/layout.js"></script>
+  <script src="/assets/js/supabase.js"></script>
 
-<script>
-function esc(str) {
-  if (str === null || str === undefined) return "";
+  <script src="/assets/js/layout.js"></script>
 
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
-async function loadProjects() {
+  <script>
 
-      const el = document.getElementById("projects-list");
+    /* =====================================================
+       HTML ESCAPE
+    ===================================================== */
+
+    function esc(value) {
+
+      if (
+        value === null ||
+        value === undefined
+      ) {
+        return "";
+      }
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+
+    /* =====================================================
+       LOAD PROJECTS
+    ===================================================== */
+
+    async function loadProjects() {
+
+      const container =
+        document.getElementById("projects-list");
+
+      if (!container) {
+        return;
+      }
 
       try {
 
-        console.log("Loading projects from Supabase...");
+        console.log(
+          "DragonByte: Loading projects..."
+        );
 
-        const { data: projects, error } = await supabaseClient
+
+        /* Make sure Supabase exists */
+
+        if (!window.supabaseClient) {
+
+          throw new Error(
+            "Supabase client is not initialized."
+          );
+        }
+
+
+        const supabase =
+          window.supabaseClient;
+
+
+        /* =================================================
+           GET PROJECTS
+        ================================================= */
+
+        const {
+          data,
+          error
+        } = await supabase
           .from("projects")
-          .select("*");
+          .select("*")
+          .eq("published", true)
+          .order("created_at", {
+            ascending: false
+          });
+
 
         if (error) {
-          console.error("Supabase projects error:", error);
+
+          console.error(
+            "DragonByte projects error:",
+            error
+          );
+
           throw error;
         }
 
-        console.log("Projects received:", projects);
+
+        const projects = data || [];
 
 
-        if (!projects || projects.length === 0) {
+        console.log(
+          "DragonByte projects received:",
+          projects
+        );
 
-          el.innerHTML = `
-            <div class="empty-state" style="grid-column:1/-1;">
 
-              <div class="icon">🔧</div>
+        /* =================================================
+           EMPTY
+        ================================================= */
+
+        if (projects.length === 0) {
+
+          container.innerHTML = `
+
+            <div
+              class="empty-state"
+              style="grid-column:1/-1;"
+            >
+
+              <div class="icon">
+                🔧
+              </div>
 
               <h3 class="h3 mb-1">
                 No projects yet
@@ -102,160 +204,401 @@ async function loadProjects() {
                 Projects will appear here when they are published.
               </p>
 
-              <a href="/join.html" class="btn btn-primary btn-sm">
+              <a
+                href="/join.html"
+                class="btn btn-primary btn-sm"
+              >
                 Join and contribute
               </a>
 
             </div>
+
           `;
 
           return;
         }
 
 
-        el.innerHTML = projects.map(p => `
+        /* =================================================
+           DISPLAY PROJECTS
+        ================================================= */
 
-          <div class="card" style="padding:0; overflow:hidden;">
-
-            <div
-              style="
-                height:160px;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                background:linear-gradient(135deg, #f0fdf4, #ecfeff);
-                font-size:2.6rem;
-              "
-            >
-              🔧
-            </div>
+        container.innerHTML = projects
+          .map(function (project) {
 
 
-            <div style="padding:20px;">
+            /* ---------------------------------------------
+               PROJECT DATA
+            --------------------------------------------- */
 
-              <h3 class="h3 mb-1">
-                ${esc(p.name)}
-              </h3>
-
-
-              <p class="text-sm text-muted mb-3">
-                ${esc(p.description || "")}
-              </p>
+            const name =
+              project.name ||
+              "DragonByte Project";
 
 
-              ${
-                Array.isArray(p.technologies) && p.technologies.length
-                  ? `
-                    <div
-                      class="flex gap-2 mb-3"
-                      style="flex-wrap:wrap;"
-                    >
+            const description =
+              project.description ||
+              "A project built by the DragonByte community.";
 
-                      ${p.technologies
-                        .slice(0, 3)
-                        .map(t => `
+
+            const category =
+              project.category ||
+              "Cybersecurity";
+
+
+            const coverPhoto =
+              project.cover_photo ||
+              project.image ||
+              "";
+
+
+            const githubUrl =
+              project.github_url ||
+              "";
+
+
+            const demoUrl =
+              project.demo_url ||
+              "";
+
+
+            const technologies =
+              Array.isArray(project.technologies)
+                ? project.technologies
+                : [];
+
+
+            const contributors =
+              Array.isArray(project.contributors)
+                ? project.contributors
+                : [];
+
+
+            /* ---------------------------------------------
+               TECHNOLOGIES
+            --------------------------------------------- */
+
+            const technologyHTML =
+              technologies.length > 0
+                ? `
+
+                  <div
+                    class="flex gap-2 mb-3"
+                    style="
+                      flex-wrap:wrap;
+                    "
+                  >
+
+                    ${technologies
+                      .slice(0, 5)
+                      .map(function (technology) {
+
+                        return `
+
                           <span
                             class="text-xs mono"
                             style="
                               color:#0891b2;
                               background:#ecfeff;
-                              padding:2px 8px;
+                              padding:4px 9px;
                               border-radius:6px;
                             "
                           >
-                            ${esc(t)}
+                            ${esc(technology)}
                           </span>
-                        `)
-                        .join("")}
 
-                    </div>
-                  `
-                  : ""
-              }
+                        `;
+
+                      })
+                      .join("")
+                    }
+
+                  </div>
+
+                `
+                : "";
 
 
-              <div
-                class="flex gap-2"
-                style="flex-wrap:wrap;"
+            /* ---------------------------------------------
+               CONTRIBUTORS
+            --------------------------------------------- */
+
+            const contributorsHTML =
+              contributors.length > 0
+                ? `
+
+                  <div
+                    class="text-xs text-muted"
+                    style="
+                      margin-bottom:14px;
+                    "
+                  >
+
+                    👥
+                    ${esc(
+                      contributors.join(", ")
+                    )}
+
+                  </div>
+
+                `
+                : "";
+
+
+            /* ---------------------------------------------
+               COVER IMAGE
+            --------------------------------------------- */
+
+            const imageHTML =
+              coverPhoto
+                ? `
+
+                  <img
+                    src="${esc(coverPhoto)}"
+                    alt="${esc(name)}"
+                    loading="lazy"
+                    style="
+                      width:100%;
+                      height:190px;
+                      display:block;
+                      object-fit:cover;
+                    "
+                    onerror="
+                      this.style.display='none';
+                      this.nextElementSibling.style.display='flex';
+                    "
+                  />
+
+                  <div
+                    style="
+                      display:none;
+                      height:190px;
+                      align-items:center;
+                      justify-content:center;
+                      background:linear-gradient(
+                        135deg,
+                        #f0fdf4,
+                        #ecfeff
+                      );
+                      font-size:3rem;
+                    "
+                  >
+                    🔧
+                  </div>
+
+                `
+                : `
+
+                  <div
+                    style="
+                      height:190px;
+                      display:flex;
+                      align-items:center;
+                      justify-content:center;
+                      background:linear-gradient(
+                        135deg,
+                        #f0fdf4,
+                        #ecfeff
+                      );
+                      font-size:3rem;
+                    "
+                  >
+                    🔧
+                  </div>
+
+                `;
+
+
+            /* ---------------------------------------------
+               BUTTONS
+            --------------------------------------------- */
+
+            const githubHTML =
+              githubUrl
+                ? `
+
+                  <a
+                    href="${esc(githubUrl)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-outline btn-sm"
+                  >
+                    GitHub
+                  </a>
+
+                `
+                : "";
+
+
+            const demoHTML =
+              demoUrl
+                ? `
+
+                  <a
+                    href="${esc(demoUrl)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-primary btn-sm"
+                  >
+                    Live Demo
+                  </a>
+
+                `
+                : "";
+
+
+            /* ---------------------------------------------
+               CARD
+            --------------------------------------------- */
+
+            return `
+
+              <article
+                class="card"
+                style="
+                  padding:0;
+                  overflow:hidden;
+                  height:100%;
+                  display:flex;
+                  flex-direction:column;
+                "
               >
 
-                ${
-                  p.githubUrl
-                    ? `
-                      <a
-                        href="${esc(p.githubUrl)}"
-                        target="_blank"
-                        rel="noopener"
-                        class="btn btn-outline btn-sm"
-                      >
-                        GitHub
-                      </a>
-                    `
-                    : ""
-                }
+                <!-- COVER -->
+
+                <div
+                  style="
+                    width:100%;
+                    overflow:hidden;
+                    background:#f8fafc;
+                  "
+                >
+
+                  ${imageHTML}
+
+                </div>
 
 
-                ${
-                  p.demoUrl
-                    ? `
-                      <a
-                        href="${esc(p.demoUrl)}"
-                        target="_blank"
-                        rel="noopener"
-                        class="btn btn-primary btn-sm"
-                      >
-                        Live Demo
-                      </a>
-                    `
-                    : ""
-                }
+                <!-- CONTENT -->
+
+                <div
+                  style="
+                    padding:22px;
+                    display:flex;
+                    flex-direction:column;
+                    flex:1;
+                  "
+                >
+
+                  <!-- CATEGORY -->
+
+                  <div
+                    style="
+                      margin-bottom:8px;
+                    "
+                  >
+
+                    <span
+                      class="text-xs"
+                      style="
+                        color:var(--primary);
+                        font-weight:600;
+                      "
+                    >
+                      ${esc(category)}
+                    </span>
+
+                  </div>
 
 
-                ${
-                  p.resourceUrl
-                    ? `
-                      <a
-                        href="${esc(p.resourceUrl)}"
-                        target="_blank"
-                        rel="noopener"
-                        class="btn btn-outline btn-sm"
-                      >
-                        📎 Resource
-                      </a>
-                    `
-                    : ""
-                }
+                  <!-- NAME -->
 
-              </div>
+                  <h3 class="h3 mb-2">
+                    ${esc(name)}
+                  </h3>
 
-            </div>
 
-          </div>
+                  <!-- DESCRIPTION -->
 
-        `).join("");
+                  <p
+                    class="text-sm text-muted"
+                    style="
+                      line-height:1.7;
+                      margin-bottom:16px;
+                    "
+                  >
+                    ${esc(description)}
+                  </p>
+
+
+                  <!-- TECHNOLOGIES -->
+
+                  ${technologyHTML}
+
+
+                  <!-- CONTRIBUTORS -->
+
+                  ${contributorsHTML}
+
+
+                  <!-- BUTTONS -->
+
+                  <div
+                    class="flex gap-2"
+                    style="
+                      flex-wrap:wrap;
+                      margin-top:auto;
+                    "
+                  >
+
+                    ${githubHTML}
+
+                    ${demoHTML}
+
+                  </div>
+
+                </div>
+
+              </article>
+
+            `;
+
+          })
+          .join("");
 
 
       } catch (error) {
 
-        console.error("Failed to load projects:", error);
+        console.error(
+          "DragonByte: Failed to load projects:",
+          error
+        );
 
-        el.innerHTML = `
+
+        container.innerHTML = `
+
           <div
             class="empty-state"
             style="grid-column:1/-1;"
           >
 
-            <div class="icon">⚠️</div>
+            <div class="icon">
+              ⚠️
+            </div>
 
             <h3 class="h3 mb-1">
               Couldn't load projects
             </h3>
 
             <p class="text-sm text-muted">
-              ${esc(error.message || "Supabase connection error")}
+              ${esc(
+                error?.message ||
+                "Unable to load projects from Supabase."
+              )}
             </p>
 
           </div>
+
         `;
 
       }
@@ -263,9 +606,17 @@ async function loadProjects() {
     }
 
 
+    /* =====================================================
+       INITIALIZE
+    ===================================================== */
+
     document.addEventListener(
       "DOMContentLoaded",
-      loadProjects
+      function () {
+
+        loadProjects();
+
+      }
     );
 
   </script>
