@@ -1,24 +1,16 @@
-// /assets/js/home.js
+// /public-site/assets/js/home.js
 
 "use strict";
 
 /* =========================================================
    DRAGONBYTE HOME PAGE
-   Loads:
-   - Upcoming Events
-   - Featured Projects
-   - Featured Members
-   - Testimonials
-
-   Images:
-   - Event cover photo
-   - Project cover photo
-========================================================= */
+   Events + Projects + Contributors + Testimonials
+   ========================================================= */
 
 
 /* =========================================================
    HTML ESCAPE
-========================================================= */
+   ========================================================= */
 
 function esc(value) {
   if (value === null || value === undefined) {
@@ -35,133 +27,272 @@ function esc(value) {
 
 
 /* =========================================================
-   GET IMAGE URL
-========================================================= */
+   IMAGE URL HELPER
+   Supports all common field names
+   ========================================================= */
 
-function getImageUrl(item, type) {
-  if (!item) {
-    return "";
-  }
+function getImageUrl(item) {
+  if (!item) return "";
 
-  /* -------------------------
-     EVENT IMAGE
-  ------------------------- */
-
-  if (type === "event") {
-    return (
-      item.eventCoverPhoto ||
-      item.event_cover_photo ||
-      item.eventCoverPhotoUrl ||
-      item.event_cover_photo_url ||
-      item.coverPhotoUrl ||
-      item.cover_photo_url ||
-      item.coverUrl ||
-      item.cover_url ||
-      item.photoUrl ||
-      item.photo_url ||
-      ""
-    );
-  }
-
-
-  /* -------------------------
-     PROJECT IMAGE
-  ------------------------- */
-
-  if (type === "project") {
-    return (
-      item.projectCoverPhoto ||
-      item.project_cover_photo ||
-      item.projectCoverPhotoUrl ||
-      item.project_cover_photo_url ||
-      item.coverPhotoUrl ||
-      item.cover_photo_url ||
-      item.coverUrl ||
-      item.cover_url ||
-      item.photoUrl ||
-      item.photo_url ||
-      ""
-    );
-  }
-
-
-  return "";
+  return (
+    item.coverPhoto ||
+    item.cover_photo ||
+    item.coverPhotoUrl ||
+    item.cover_photo_url ||
+    item.image ||
+    item.imageUrl ||
+    item.image_url ||
+    item.photo ||
+    item.photoUrl ||
+    item.photo_url ||
+    ""
+  );
 }
 
 
 /* =========================================================
-   FORMAT DATE
-========================================================= */
+   SAFE URL
+   ========================================================= */
 
-function formatDate(value) {
-  if (!value) {
-    return "TBA";
-  }
+function safeUrl(value) {
+  if (!value) return "";
 
   try {
-    const date = new Date(value);
+    const url = new URL(value, window.location.href);
 
-    if (Number.isNaN(date.getTime())) {
-      return String(value);
+    if (
+      url.protocol === "http:" ||
+      url.protocol === "https:"
+    ) {
+      return url.href;
     }
 
-    return date.toLocaleDateString("en-IN", {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
-    });
-  } catch (error) {
-    return String(value);
+    return "";
+  } catch {
+    return "";
   }
+}
+
+
+/* =========================================================
+   API CHECK
+   ========================================================= */
+
+function checkApi() {
+  if (
+    !window.Api ||
+    typeof window.Api.get !== "function"
+  ) {
+    throw new Error(
+      "DragonByte API is not available."
+    );
+  }
+}
+
+
+/* =========================================================
+   IMAGE FALLBACK
+   ========================================================= */
+
+function eventImageHtml(event) {
+  const imageUrl = safeUrl(getImageUrl(event));
+
+  if (imageUrl) {
+    return `
+      <div class="home-cover-image"
+        style="
+          width:100%;
+          height:150px;
+          overflow:hidden;
+          background:#eff6ff;
+        "
+      >
+        <img
+          src="${esc(imageUrl)}"
+          alt="${esc(event.title || "Event")}"
+          loading="lazy"
+          style="
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            display:block;
+          "
+          onerror="
+            this.style.display='none';
+            this.parentElement.classList.add('image-error');
+          "
+        >
+
+        <div
+          class="image-fallback-icon"
+          style="
+            display:none;
+            width:100%;
+            height:100%;
+            align-items:center;
+            justify-content:center;
+            font-size:2.5rem;
+            background:linear-gradient(135deg,#eff6ff,#e0f2fe);
+          "
+        >
+          📅
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div
+      style="
+        width:100%;
+        height:150px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background:linear-gradient(135deg,#eff6ff,#e0f2fe);
+        font-size:2.5rem;
+      "
+    >
+      📅
+    </div>
+  `;
+}
+
+
+function projectImageHtml(project) {
+  const imageUrl = safeUrl(getImageUrl(project));
+
+  if (imageUrl) {
+    return `
+      <div class="home-cover-image"
+        style="
+          width:100%;
+          height:150px;
+          overflow:hidden;
+          background:#f0fdf4;
+        "
+      >
+        <img
+          src="${esc(imageUrl)}"
+          alt="${esc(
+            project.name ||
+            project.title ||
+            "Project"
+          )}"
+          loading="lazy"
+          style="
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            display:block;
+          "
+          onerror="
+            this.style.display='none';
+            this.parentElement.classList.add('image-error');
+          "
+        >
+
+        <div
+          class="image-fallback-icon"
+          style="
+            display:none;
+            width:100%;
+            height:100%;
+            align-items:center;
+            justify-content:center;
+            font-size:2.5rem;
+            background:linear-gradient(135deg,#f0fdf4,#ecfeff);
+          "
+        >
+          🔧
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div
+      style="
+        width:100%;
+        height:150px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background:linear-gradient(135deg,#f0fdf4,#ecfeff);
+        font-size:2.5rem;
+      "
+    >
+      🔧
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   FIX IMAGE FALLBACK WHEN IMAGE URL IS BROKEN
+   ========================================================= */
+
+function enableImageFallbacks() {
+  document
+    .querySelectorAll(".home-cover-image")
+    .forEach((container) => {
+      const img = container.querySelector("img");
+      const fallback =
+        container.querySelector(
+          ".image-fallback-icon"
+        );
+
+      if (!img || !fallback) return;
+
+      img.addEventListener("error", () => {
+        img.style.display = "none";
+        fallback.style.display = "flex";
+      });
+    });
 }
 
 
 /* =========================================================
    EVENTS
-========================================================= */
+   ========================================================= */
 
 async function loadHomeEvents() {
-  const el = document.getElementById("home-events");
+  const el =
+    document.getElementById("home-events");
 
-  if (!el) {
-    return;
-  }
+  if (!el) return;
 
   try {
-    /* -------------------------
-       API CHECK
-    ------------------------- */
+    checkApi();
 
-    if (
-      !window.Api ||
-      typeof window.Api.get !== "function"
-    ) {
-      throw new Error(
-        "DragonByte API is not available."
-      );
-    }
-
-
-    /* -------------------------
-       LOAD EVENTS
-    ------------------------- */
-
-    const events = await window.Api.get("/events");
+    const events = await window.Api.get(
+      "/events"
+    );
 
     console.log(
       "DragonByte Home Events:",
       events
     );
 
+    if (!Array.isArray(events)) {
+      throw new Error(
+        "Events API returned invalid data."
+      );
+    }
 
-    const limitedEvents = Array.isArray(events)
-      ? events.slice(0, 3)
-      : [];
+    /*
+      Prefer published events.
+      If API already filters them, this keeps them unchanged.
+    */
 
+    const publishedEvents =
+      events.filter(
+        (event) =>
+          event.published !== false
+      );
 
-    /* -------------------------
-       EMPTY STATE
-    ------------------------- */
+    const limitedEvents =
+      publishedEvents.slice(0, 3);
 
     if (!limitedEvents.length) {
       el.innerHTML = `
@@ -169,247 +300,156 @@ async function loadHomeEvents() {
           class="empty-state"
           style="grid-column:1/-1;"
         >
-
-          <div class="icon">
-            📅
-          </div>
+          <div class="icon">📅</div>
 
           <h3 class="h3 mb-1">
             No upcoming events
           </h3>
 
           <p class="text-sm text-muted">
-            New cybersecurity events will appear here.
+            New cybersecurity events will
+            appear here.
           </p>
-
         </div>
       `;
 
       return;
     }
 
+    el.innerHTML =
+      limitedEvents
+        .map((event) => {
+          const imageUrl =
+            getImageUrl(event);
 
-    /* -------------------------
-       RENDER EVENTS
-    ------------------------- */
+          console.log(
+            "Event cover:",
+            event.title,
+            imageUrl
+          );
 
-    el.innerHTML = limitedEvents
-      .map((event) => {
+          const registrationUrl =
+            safeUrl(
+              event.registrationUrl ||
+              event.registration_url
+            );
 
-        const coverPhoto =
-          getImageUrl(event, "event");
+          const eventDate =
+            event.date ||
+            event.eventDate ||
+            event.event_date ||
+            "TBA";
 
+          const eventTime =
+            event.time ||
+            event.eventTime ||
+            event.event_time ||
+            "";
 
-        const eventTitle =
-          event.title ||
-          event.name ||
-          "Untitled Event";
-
-
-        const eventDescription =
-          event.description ||
-          "";
-
-
-        const eventCategory =
-          event.category ||
-          "Event";
-
-
-        const eventLocation =
-          event.location ||
-          "TBA";
-
-
-        const eventDate =
-          event.date ||
-          event.eventDate ||
-          event.event_date ||
-          "";
-
-
-        const registrationUrl =
-          event.registrationUrl ||
-          event.registration_url ||
-          "";
-
-
-        return `
-          <div
-            class="card"
-            style="
-              padding:0;
-              overflow:hidden;
-            "
-          >
-
-            <!-- =====================================
-                 EVENT COVER IMAGE
-            ====================================== -->
-
+          return `
             <div
+              class="card"
               style="
-                height:150px;
-                width:100%;
+                padding:0;
                 overflow:hidden;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                background:
-                  linear-gradient(
-                    135deg,
-                    #eff6ff,
-                    #e0f2fe
-                  );
               "
             >
 
-              ${
-                coverPhoto
-                  ? `
-                    <img
-                      src="${esc(coverPhoto)}"
-                      alt="${esc(eventTitle)}"
-                      loading="lazy"
-                      style="
-                        width:100%;
-                        height:100%;
-                        object-fit:cover;
-                        display:block;
-                      "
-                      onerror="
-                        this.style.display='none';
-                        this.nextElementSibling.style.display='flex';
-                      "
-                    >
-
-                    <!-- FALLBACK -->
-                    <div
-                      style="
-                        display:none;
-                        width:100%;
-                        height:100%;
-                        align-items:center;
-                        justify-content:center;
-                        font-size:2.5rem;
-                      "
-                    >
-                      📅
-                    </div>
-                  `
-                  : `
-                    <!-- NO IMAGE FALLBACK -->
-                    <div
-                      style="
-                        width:100%;
-                        height:100%;
-                        display:flex;
-                        align-items:center;
-                        justify-content:center;
-                        font-size:2.5rem;
-                      "
-                    >
-                      📅
-                    </div>
-                  `
-              }
-
-            </div>
-
-
-            <!-- =====================================
-                 EVENT CONTENT
-            ====================================== -->
-
-            <div
-              style="
-                padding:20px;
-              "
-            >
-
-              <!-- CATEGORY -->
-
-              <span class="badge badge-blue">
-                ${esc(eventCategory)}
-              </span>
-
-
-              <!-- TITLE -->
-
-              <h3
-                class="h3 mt-2 mb-1"
-              >
-                ${esc(eventTitle)}
-              </h3>
-
-
-              <!-- DESCRIPTION -->
-
-              <p
-                class="text-sm text-muted mb-3"
-              >
-                ${esc(eventDescription)}
-              </p>
-
-
-              <!-- LOCATION + DATE -->
+              ${eventImageHtml(event)}
 
               <div
-                class="text-xs text-muted mb-3"
+                style="
+                  padding:20px;
+                "
               >
 
-                📍
-                ${esc(eventLocation)}
+                <span class="badge badge-blue">
+                  ${esc(
+                    event.category ||
+                    "Event"
+                  )}
+                </span>
 
-                &nbsp;·&nbsp;
+                <h3
+                  class="h3 mt-2 mb-1"
+                >
+                  ${esc(
+                    event.title ||
+                    "Untitled Event"
+                  )}
+                </h3>
 
-                🗓
-                ${esc(formatDate(eventDate))}
+                <p
+                  class="text-sm text-muted mb-3"
+                >
+                  ${esc(
+                    event.description ||
+                    ""
+                  )}
+                </p>
+
+                <div
+                  class="text-xs text-muted mb-3"
+                >
+                  📍
+                  ${esc(
+                    event.location ||
+                    "TBA"
+                  )}
+
+                  &nbsp;·&nbsp;
+
+                  🗓
+                  ${esc(eventDate)}
+
+                  ${
+                    eventTime
+                      ? `
+                        &nbsp;·&nbsp;
+                        ⏰
+                        ${esc(eventTime)}
+                      `
+                      : ""
+                  }
+                </div>
+
+                ${
+                  registrationUrl
+                    ? `
+                      <a
+                        href="${esc(
+                          registrationUrl
+                        )}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-primary btn-sm"
+                      >
+                        Register
+                      </a>
+                    `
+                    : ""
+                }
 
               </div>
-
-
-              <!-- REGISTER BUTTON -->
-
-              ${
-                registrationUrl
-                  ? `
-                    <a
-                      href="${esc(registrationUrl)}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="btn btn-primary btn-sm"
-                    >
-                      Register
-                    </a>
-                  `
-                  : ""
-              }
-
             </div>
+          `;
+        })
+        .join("");
 
-          </div>
-        `;
-      })
-      .join("");
+    enableImageFallbacks();
 
   } catch (error) {
-
     console.error(
       "Home events error:",
       error
     );
-
 
     el.innerHTML = `
       <div
         class="empty-state"
         style="grid-column:1/-1;"
       >
-
-        <div class="icon">
-          ⚠️
-        </div>
+        <div class="icon">⚠️</div>
 
         <h3 class="h3 mb-1">
           Couldn't load events
@@ -421,7 +461,6 @@ async function loadHomeEvents() {
             "Unable to load events."
           )}
         </p>
-
       </div>
     `;
   }
@@ -430,342 +469,299 @@ async function loadHomeEvents() {
 
 /* =========================================================
    PROJECTS
-========================================================= */
+   ========================================================= */
 
 async function loadHomeProjects() {
-  const el = document.getElementById(
-    "home-projects"
-  );
+  const el =
+    document.getElementById(
+      "home-projects"
+    );
 
-  if (!el) {
-    return;
-  }
+  if (!el) return;
 
   try {
-
-    /* -------------------------
-       API CHECK
-    ------------------------- */
-
-    if (
-      !window.Api ||
-      typeof window.Api.get !== "function"
-    ) {
-      throw new Error(
-        "DragonByte API is not available."
-      );
-    }
-
-
-    /* -------------------------
-       LOAD PROJECTS
-    ------------------------- */
+    checkApi();
 
     const projects =
-      await window.Api.get("/projects");
-
+      await window.Api.get(
+        "/projects"
+      );
 
     console.log(
       "DragonByte Home Projects:",
       projects
     );
 
+    if (!Array.isArray(projects)) {
+      throw new Error(
+        "Projects API returned invalid data."
+      );
+    }
+
+    /*
+      Only show published projects.
+
+      If a project has featured=true,
+      prioritize it.
+    */
+
+    const publishedProjects =
+      projects.filter(
+        (project) =>
+          project.published !== false
+      );
+
+    const featuredProjects =
+      publishedProjects.filter(
+        (project) =>
+          project.featured === true ||
+          project.featured === 1
+      );
+
+    const normalProjects =
+      publishedProjects.filter(
+        (project) =>
+          !(
+            project.featured === true ||
+            project.featured === 1
+          )
+      );
+
+    const orderedProjects = [
+      ...featuredProjects,
+      ...normalProjects,
+    ];
 
     const limitedProjects =
-      Array.isArray(projects)
-        ? projects.slice(0, 3)
-        : [];
-
-
-    /* -------------------------
-       EMPTY STATE
-    ------------------------- */
+      orderedProjects.slice(0, 3);
 
     if (!limitedProjects.length) {
-
       el.innerHTML = `
         <div
           class="empty-state"
           style="grid-column:1/-1;"
         >
-
-          <div class="icon">
-            🔧
-          </div>
+          <div class="icon">🔧</div>
 
           <h3 class="h3 mb-1">
             No projects yet
           </h3>
 
           <p class="text-sm text-muted">
-            Community projects will appear here.
+            Community projects will
+            appear here.
           </p>
-
         </div>
       `;
 
       return;
     }
 
+    el.innerHTML =
+      limitedProjects
+        .map((project) => {
+          const imageUrl =
+            getImageUrl(project);
 
-    /* -------------------------
-       RENDER PROJECTS
-    ------------------------- */
-
-    el.innerHTML = limitedProjects
-      .map((project) => {
-
-        const coverPhoto =
-          getImageUrl(
-            project,
-            "project"
+          console.log(
+            "Project cover:",
+            project.name ||
+            project.title,
+            imageUrl
           );
 
+          let technologies =
+            project.technologies;
 
-        const projectName =
-          project.name ||
-          project.title ||
-          "Untitled Project";
+          /*
+            Support both:
+            ["HTML", "CSS"]
+            and
+            "HTML, CSS"
+          */
 
+          if (
+            typeof technologies ===
+            "string"
+          ) {
+            technologies =
+              technologies
+                .split(",")
+                .map((item) =>
+                  item.trim()
+                )
+                .filter(Boolean);
+          }
 
-        const projectDescription =
-          project.description ||
-          "";
+          if (
+            !Array.isArray(
+              technologies
+            )
+          ) {
+            technologies = [];
+          }
 
+          const githubUrl =
+            safeUrl(
+              project.githubUrl ||
+              project.github_url
+            );
 
-        const githubUrl =
-          project.githubUrl ||
-          project.github_url ||
-          "";
+          const demoUrl =
+            safeUrl(
+              project.demoUrl ||
+              project.demo_url
+            );
 
-
-        const demoUrl =
-          project.demoUrl ||
-          project.demo_url ||
-          "";
-
-
-        return `
-          <div
-            class="card"
-            style="
-              padding:0;
-              overflow:hidden;
-            "
-          >
-
-            <!-- =====================================
-                 PROJECT COVER IMAGE
-            ====================================== -->
-
+          return `
             <div
+              class="card"
               style="
-                height:150px;
-                width:100%;
+                padding:0;
                 overflow:hidden;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                background:
-                  linear-gradient(
-                    135deg,
-                    #f0fdf4,
-                    #ecfeff
-                  );
               "
             >
 
-              ${
-                coverPhoto
-                  ? `
-                    <img
-                      src="${esc(coverPhoto)}"
-                      alt="${esc(projectName)}"
-                      loading="lazy"
-                      style="
-                        width:100%;
-                        height:100%;
-                        object-fit:cover;
-                        display:block;
-                      "
-                      onerror="
-                        this.style.display='none';
-                        this.nextElementSibling.style.display='flex';
-                      "
-                    >
-
-                    <!-- FALLBACK -->
-                    <div
-                      style="
-                        display:none;
-                        width:100%;
-                        height:100%;
-                        align-items:center;
-                        justify-content:center;
-                        font-size:2.5rem;
-                      "
-                    >
-                      🔧
-                    </div>
-                  `
-                  : `
-                    <!-- NO IMAGE FALLBACK -->
-                    <div
-                      style="
-                        width:100%;
-                        height:100%;
-                        display:flex;
-                        align-items:center;
-                        justify-content:center;
-                        font-size:2.5rem;
-                      "
-                    >
-                      🔧
-                    </div>
-                  `
-              }
-
-            </div>
-
-
-            <!-- =====================================
-                 PROJECT CONTENT
-            ====================================== -->
-
-            <div
-              style="
-                padding:20px;
-              "
-            >
-
-              <!-- PROJECT NAME -->
-
-              <h3
-                class="h3 mb-1"
-              >
-                ${esc(projectName)}
-              </h3>
-
-
-              <!-- DESCRIPTION -->
-
-              <p
-                class="text-sm text-muted mb-3"
-              >
-                ${esc(projectDescription)}
-              </p>
-
-
-              <!-- =================================
-                   TECHNOLOGIES
-              ================================== -->
-
-              ${
-                Array.isArray(
-                  project.technologies
-                ) &&
-                project.technologies.length
-                  ? `
-                    <div
-                      class="flex gap-2 mb-3"
-                      style="
-                        flex-wrap:wrap;
-                      "
-                    >
-
-                      ${project.technologies
-                        .slice(0, 3)
-                        .map(
-                          (tech) => `
-                            <span
-                              class="text-xs mono"
-                              style="
-                                color:#0891b2;
-                                background:#ecfeff;
-                                padding:2px 8px;
-                                border-radius:6px;
-                              "
-                            >
-                              ${esc(tech)}
-                            </span>
-                          `
-                        )
-                        .join("")}
-
-                    </div>
-                  `
-                  : ""
-              }
-
-
-              <!-- =================================
-                   PROJECT LINKS
-              ================================== -->
+              ${projectImageHtml(project)}
 
               <div
-                class="flex gap-2"
                 style="
-                  flex-wrap:wrap;
+                  padding:20px;
                 "
               >
 
                 ${
-                  githubUrl
+                  project.category
                     ? `
-                      <a
-                        href="${esc(githubUrl)}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="btn btn-outline btn-sm"
+                      <span
+                        class="badge badge-blue"
                       >
-                        GitHub
-                      </a>
+                        ${esc(
+                          project.category
+                        )}
+                      </span>
                     `
                     : ""
                 }
 
+                <h3
+                  class="h3 ${
+                    project.category
+                      ? "mt-2"
+                      : ""
+                  } mb-1"
+                >
+                  ${esc(
+                    project.name ||
+                    project.title ||
+                    "Untitled Project"
+                  )}
+                </h3>
+
+                <p
+                  class="text-sm text-muted mb-3"
+                >
+                  ${esc(
+                    project.description ||
+                    ""
+                  )}
+                </p>
 
                 ${
-                  demoUrl
+                  technologies.length
                     ? `
-                      <a
-                        href="${esc(demoUrl)}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="btn btn-primary btn-sm"
+                      <div
+                        class="flex gap-2 mb-3"
+                        style="
+                          flex-wrap:wrap;
+                        "
                       >
-                        Live Demo
-                      </a>
+                        ${technologies
+                          .slice(0, 4)
+                          .map(
+                            (tech) => `
+                              <span
+                                class="text-xs mono"
+                                style="
+                                  color:#0891b2;
+                                  background:#ecfeff;
+                                  padding:2px 8px;
+                                  border-radius:6px;
+                                "
+                              >
+                                ${esc(tech)}
+                              </span>
+                            `
+                          )
+                          .join("")}
+                      </div>
                     `
                     : ""
                 }
 
+                <div
+                  class="flex gap-2"
+                  style="
+                    flex-wrap:wrap;
+                  "
+                >
+
+                  ${
+                    githubUrl
+                      ? `
+                        <a
+                          href="${esc(
+                            githubUrl
+                          )}"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="btn btn-outline btn-sm"
+                        >
+                          GitHub
+                        </a>
+                      `
+                      : ""
+                  }
+
+                  ${
+                    demoUrl
+                      ? `
+                        <a
+                          href="${esc(
+                            demoUrl
+                          )}"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="btn btn-primary btn-sm"
+                        >
+                          Live Demo
+                        </a>
+                      `
+                      : ""
+                  }
+
+                </div>
+
               </div>
-
             </div>
+          `;
+        })
+        .join("");
 
-          </div>
-        `;
-      })
-      .join("");
+    enableImageFallbacks();
 
   } catch (error) {
-
     console.error(
       "Home projects error:",
       error
     );
-
 
     el.innerHTML = `
       <div
         class="empty-state"
         style="grid-column:1/-1;"
       >
-
-        <div class="icon">
-          ⚠️
-        </div>
+        <div class="icon">⚠️</div>
 
         <h3 class="h3 mb-1">
           Couldn't load projects
@@ -777,7 +773,6 @@ async function loadHomeProjects() {
             "Unable to load projects."
           )}
         </p>
-
       </div>
     `;
   }
@@ -786,7 +781,7 @@ async function loadHomeProjects() {
 
 /* =========================================================
    CONTRIBUTORS
-========================================================= */
+   ========================================================= */
 
 async function loadHomeContributors() {
   const el =
@@ -794,76 +789,74 @@ async function loadHomeContributors() {
       "home-contributors"
     );
 
-  if (!el) {
-    return;
-  }
+  if (!el) return;
 
   try {
-
-    if (
-      !window.Api ||
-      typeof window.Api.get !== "function"
-    ) {
-      throw new Error(
-        "DragonByte API is not available."
-      );
-    }
-
+    checkApi();
 
     const contributors =
       await window.Api.get(
         "/contributors"
       );
 
-
     console.log(
       "DragonByte Home Contributors:",
       contributors
     );
 
+    if (!Array.isArray(contributors)) {
+      throw new Error(
+        "Contributors API returned invalid data."
+      );
+    }
+
+    const featured =
+      contributors.filter(
+        (member) =>
+          member.featured === true ||
+          member.featured === 1
+      );
+
+    const source =
+      featured.length
+        ? featured
+        : contributors;
 
     const limitedContributors =
-      Array.isArray(contributors)
-        ? contributors.slice(0, 3)
-        : [];
-
+      source.slice(0, 3);
 
     if (!limitedContributors.length) {
-
       el.innerHTML = `
         <div
           class="empty-state"
           style="grid-column:1/-1;"
         >
-
-          <div class="icon">
-            👥
-          </div>
+          <div class="icon">👥</div>
 
           <h3 class="h3 mb-1">
             No featured members yet
           </h3>
 
           <p class="text-sm text-muted">
-            Featured community members will appear here.
+            Featured community members
+            will appear here.
           </p>
-
         </div>
       `;
 
       return;
     }
 
-
     el.innerHTML =
       limitedContributors
         .map((member) => {
-
           const imageUrl =
-            member.imageUrl ||
-            member.image_url ||
-            "";
-
+            safeUrl(
+              member.imageUrl ||
+              member.image_url ||
+              member.photo ||
+              member.photo_url
+            );
 
           return `
             <div
@@ -874,7 +867,9 @@ async function loadHomeContributors() {
                 imageUrl
                   ? `
                     <img
-                      src="${esc(imageUrl)}"
+                      src="${esc(
+                        imageUrl
+                      )}"
                       alt="${esc(
                         member.name ||
                         "Member"
@@ -908,14 +903,14 @@ async function loadHomeContributors() {
                   `
               }
 
-
-              <h3 class="h3 mb-1">
+              <h3
+                class="h3 mb-1"
+              >
                 ${esc(
                   member.name ||
                   "Member"
                 )}
               </h3>
-
 
               <p
                 class="text-sm"
@@ -928,7 +923,6 @@ async function loadHomeContributors() {
                   ""
                 )}
               </p>
-
 
               <p
                 class="text-sm text-muted mt-2"
@@ -945,22 +939,17 @@ async function loadHomeContributors() {
         .join("");
 
   } catch (error) {
-
     console.error(
       "Home contributors error:",
       error
     );
-
 
     el.innerHTML = `
       <div
         class="empty-state"
         style="grid-column:1/-1;"
       >
-
-        <div class="icon">
-          ⚠️
-        </div>
+        <div class="icon">⚠️</div>
 
         <h3 class="h3 mb-1">
           Couldn't load members
@@ -972,7 +961,6 @@ async function loadHomeContributors() {
             "Unable to load members."
           )}
         </p>
-
       </div>
     `;
   }
@@ -981,7 +969,7 @@ async function loadHomeContributors() {
 
 /* =========================================================
    TESTIMONIALS
-========================================================= */
+   ========================================================= */
 
 async function loadHomeTestimonials() {
   const el =
@@ -989,79 +977,62 @@ async function loadHomeTestimonials() {
       "home-testimonials"
     );
 
-  if (!el) {
-    return;
-  }
+  if (!el) return;
 
   try {
-
-    if (
-      !window.Api ||
-      typeof window.Api.get !== "function"
-    ) {
-      throw new Error(
-        "DragonByte API is not available."
-      );
-    }
-
+    checkApi();
 
     const testimonials =
       await window.Api.get(
         "/testimonials"
       );
 
-
     console.log(
       "DragonByte Home Testimonials:",
       testimonials
     );
 
+    if (!Array.isArray(testimonials)) {
+      throw new Error(
+        "Testimonials API returned invalid data."
+      );
+    }
+
+    const approved =
+      testimonials.filter(
+        (item) =>
+          item.approved !== false
+      );
 
     const limitedTestimonials =
-      Array.isArray(testimonials)
-        ? testimonials.slice(0, 3)
-        : [];
-
+      approved.slice(0, 3);
 
     if (!limitedTestimonials.length) {
-
       el.innerHTML = `
         <div
           class="empty-state"
           style="grid-column:1/-1;"
         >
-
-          <div class="icon">
-            💬
-          </div>
+          <div class="icon">💬</div>
 
           <h3 class="h3 mb-1">
             No testimonials yet
           </h3>
 
           <p class="text-sm text-muted">
-            Community feedback will appear here.
+            Community feedback will
+            appear here.
           </p>
-
         </div>
       `;
 
       return;
     }
 
-
     el.innerHTML =
       limitedTestimonials
-        .map((item) => {
-
-          const quote =
-            item.quote ||
-            item.message ||
-            item.content ||
-            "";
-
-
-          return `
+        .map(
+          (item) => `
             <div
               class="card"
             >
@@ -1069,9 +1040,13 @@ async function loadHomeTestimonials() {
               <p
                 class="text-sm mb-3"
               >
-                "${esc(quote)}"
+                "${esc(
+                  item.quote ||
+                  item.message ||
+                  item.content ||
+                  ""
+                )}"
               </p>
-
 
               <div
                 class="text-sm"
@@ -1085,7 +1060,6 @@ async function loadHomeTestimonials() {
                 )}
               </div>
 
-
               <div
                 class="text-xs text-muted"
               >
@@ -1096,27 +1070,22 @@ async function loadHomeTestimonials() {
               </div>
 
             </div>
-          `;
-        })
+          `
+        )
         .join("");
 
   } catch (error) {
-
     console.error(
       "Home testimonials error:",
       error
     );
-
 
     el.innerHTML = `
       <div
         class="empty-state"
         style="grid-column:1/-1;"
       >
-
-        <div class="icon">
-          ⚠️
-        </div>
+        <div class="icon">⚠️</div>
 
         <h3 class="h3 mb-1">
           Couldn't load testimonials
@@ -1128,7 +1097,6 @@ async function loadHomeTestimonials() {
             "Unable to load testimonials."
           )}
         </p>
-
       </div>
     `;
   }
@@ -1137,23 +1105,19 @@ async function loadHomeTestimonials() {
 
 /* =========================================================
    START HOME PAGE
-========================================================= */
+   ========================================================= */
 
 document.addEventListener(
   "DOMContentLoaded",
   function () {
 
     console.log(
-      "DragonByte Home: Loading..."
+      "DragonByte Home: loading..."
     );
 
-
     loadHomeEvents();
-
     loadHomeProjects();
-
     loadHomeContributors();
-
     loadHomeTestimonials();
 
   }
