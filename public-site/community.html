@@ -27,6 +27,7 @@
   <main>
 
     <!-- HERO -->
+
     <section
       style="
         padding: 96px 0;
@@ -268,7 +269,7 @@
 
 
     /* =========================================
-       LOAD CONTRIBUTORS
+       LOAD MEMBERS
     ========================================= */
 
     async function loadContributors() {
@@ -284,39 +285,50 @@
       try {
 
         console.log(
-          "DragonByte: Loading contributors..."
+          "DragonByte: Loading members..."
         );
 
         const supabase = getSupabase();
+
+
+        /* =========================================
+           IMPORTANT:
+           READ FROM MEMBERS TABLE
+        ========================================= */
 
         const {
           data,
           error
         } = await supabase
-          .from("contributors")
+          .from("members")
           .select("*");
+
 
         if (error) {
 
           console.error(
-            "DragonByte contributors error:",
+            "DragonByte members error:",
             error
           );
 
           throw error;
         }
 
-        const contributors = data || [];
+
+        const members = data || [];
+
 
         console.log(
-          "DragonByte contributors:",
-          contributors
+          "DragonByte members:",
+          members
         );
 
 
-        /* EMPTY */
+        /* =========================================
+           EMPTY STATE
+        ========================================= */
 
-        if (contributors.length === 0) {
+        if (members.length === 0) {
 
           el.innerHTML = `
 
@@ -346,34 +358,159 @@
         }
 
 
-        /* DISPLAY */
+        /* =========================================
+           DISPLAY MEMBERS
+        ========================================= */
 
-        el.innerHTML = contributors
-          .map(function (c) {
+        el.innerHTML = members
+          .map(function (member) {
+
+
+            /* =========================================
+               NAME
+            ========================================= */
 
             const name =
-              c.name ||
-              c.full_name ||
-              c.username ||
+              member.name ||
+              member.full_name ||
+              member.username ||
               "Community Member";
 
+
+            /* =========================================
+               ROLE / SKILLS
+            ========================================= */
+
             const role =
-              c.role ||
-              c.position ||
-              c.title ||
+              member.skills ||
+              member.role ||
+              member.position ||
+              member.title ||
               "DragonByte Member";
 
+
+            /* =========================================
+               BIO
+            ========================================= */
+
             const bio =
-              c.bio ||
-              c.description ||
+              member.bio ||
+              member.description ||
               "";
+
+
+            /* =========================================
+               PHOTO
+
+               YOUR SUPABASE COLUMN IS:
+               photo
+            ========================================= */
 
             const avatar =
-              c.avatar_url ||
-              c.avatar ||
-              c.profile_image ||
+              member.photo ||
+              member.avatar_url ||
+              member.avatar ||
+              member.profile_image ||
               "";
 
+
+            /* =========================================
+               SOCIAL LINKS
+            ========================================= */
+
+            const github =
+              member.github ||
+              member.github_url ||
+              "";
+
+            const linkedin =
+              member.linkedin ||
+              member.linkedin_url ||
+              "";
+
+
+            /* =========================================
+               PHOTO HTML
+            ========================================= */
+
+            const photoHtml = avatar
+
+              ? `
+
+                <img
+                  src="${esc(avatar)}"
+                  alt="${esc(name)}"
+                  loading="lazy"
+                  onerror="
+                    this.style.display='none';
+                    this.parentElement.innerHTML='👤';
+                  "
+                  style="
+                    width:100%;
+                    height:100%;
+                    object-fit:cover;
+                    display:block;
+                  "
+                />
+
+              `
+
+              : `
+
+                👤
+
+              `;
+
+
+            /* =========================================
+               SOCIAL BUTTONS
+            ========================================= */
+
+            const socialLinks = `
+
+              ${
+                github
+                  ? `
+                    <a
+                      href="${esc(github)}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-sm"
+                      style="
+                        color:var(--primary);
+                        margin-right:10px;
+                      "
+                    >
+                      GitHub
+                    </a>
+                  `
+                  : ""
+              }
+
+              ${
+                linkedin
+                  ? `
+                    <a
+                      href="${esc(linkedin)}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-sm"
+                      style="
+                        color:var(--primary);
+                      "
+                    >
+                      LinkedIn
+                    </a>
+                  `
+                  : ""
+              }
+
+            `;
+
+
+            /* =========================================
+               MEMBER CARD
+            ========================================= */
 
             return `
 
@@ -385,12 +522,12 @@
                 "
               >
 
-                <!-- AVATAR -->
+                <!-- PHOTO -->
 
                 <div
                   style="
-                    width:80px;
-                    height:80px;
+                    width:110px;
+                    height:110px;
                     margin:0 auto 16px;
                     border-radius:50%;
                     overflow:hidden;
@@ -398,27 +535,11 @@
                     align-items:center;
                     justify-content:center;
                     background:#eff6ff;
-                    font-size:32px;
+                    font-size:40px;
                   "
                 >
 
-                  ${
-                    avatar
-                      ? `
-                        <img
-                          src="${esc(avatar)}"
-                          alt="${esc(name)}"
-                          style="
-                            width:100%;
-                            height:100%;
-                            object-fit:cover;
-                          "
-                        />
-                      `
-                      : `
-                        👤
-                      `
-                  }
+                  ${photoHtml}
 
                 </div>
 
@@ -430,11 +551,14 @@
                 </h3>
 
 
-                <!-- ROLE -->
+                <!-- SKILLS / ROLE -->
 
                 <p
                   class="text-sm"
-                  style="color:var(--primary);"
+                  style="
+                    color:var(--primary);
+                    font-weight:500;
+                  "
                 >
                   ${esc(role)}
                 </p>
@@ -445,11 +569,37 @@
                 ${
                   bio
                     ? `
+
                       <p
                         class="text-sm text-muted mt-2"
+                        style="
+                          line-height:1.6;
+                        "
                       >
                         ${esc(bio)}
                       </p>
+
+                    `
+                    : ""
+                }
+
+
+                <!-- SOCIAL LINKS -->
+
+                ${
+                  github || linkedin
+                    ? `
+
+                      <div
+                        style="
+                          margin-top:14px;
+                        "
+                      >
+
+                        ${socialLinks}
+
+                      </div>
+
                     `
                     : ""
                 }
@@ -465,9 +615,10 @@
       } catch (error) {
 
         console.error(
-          "DragonByte: Failed to load contributors:",
+          "DragonByte: Failed to load members:",
           error
         );
+
 
         el.innerHTML = `
 
@@ -518,7 +669,9 @@
           "DragonByte: Loading testimonials..."
         );
 
+
         const supabase = getSupabase();
+
 
         const {
           data,
@@ -526,6 +679,7 @@
         } = await supabase
           .from("testimonials")
           .select("*");
+
 
         if (error) {
 
@@ -537,7 +691,9 @@
           throw error;
         }
 
+
         const testimonials = data || [];
+
 
         console.log(
           "DragonByte testimonials:",
@@ -545,7 +701,9 @@
         );
 
 
-        /* EMPTY */
+        /* =========================================
+           EMPTY
+        ========================================= */
 
         if (testimonials.length === 0) {
 
@@ -576,10 +734,13 @@
         }
 
 
-        /* DISPLAY */
+        /* =========================================
+           DISPLAY
+        ========================================= */
 
         el.innerHTML = testimonials
           .map(function (t) {
+
 
             const name =
               t.name ||
@@ -587,11 +748,13 @@
               t.full_name ||
               "Community Member";
 
+
             const role =
               t.role ||
               t.position ||
               t.title ||
               "";
+
 
             const quote =
               t.quote ||
@@ -625,7 +788,9 @@
 
                 <p
                   class="text-sm mb-4"
-                  style="line-height:1.7;"
+                  style="
+                    line-height:1.7;
+                  "
                 >
                   "${esc(quote)}"
                 </p>
@@ -633,7 +798,9 @@
 
                 <div
                   class="text-sm"
-                  style="font-weight:600;"
+                  style="
+                    font-weight:600;
+                  "
                 >
                   ${esc(name)}
                 </div>
@@ -642,9 +809,11 @@
                 ${
                   role
                     ? `
+
                       <div class="text-xs text-muted">
                         ${esc(role)}
                       </div>
+
                     `
                     : ""
                 }
@@ -663,6 +832,7 @@
           "DragonByte: Failed to load testimonials:",
           error
         );
+
 
         el.innerHTML = `
 
@@ -704,6 +874,7 @@
         console.log(
           "DragonByte Community page loaded."
         );
+
 
         loadContributors();
 
