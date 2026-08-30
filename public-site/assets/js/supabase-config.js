@@ -1,8 +1,9 @@
-const SUPABASE_URL = "https://lfwwslohugqojibcpkys.supabase.co";
+// =========================================================
+// DragonByte Supabase Configuration
+// =========================================================
 
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmd3dzbG9odWdxb2ppYmNwa3lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MTIzMDEsImV4cCI6MjEwMzQ4ODMwMX0.-TjfeMSsZLQv72DLbJJQ-NQ90r6j-cXzX4hPhlskAE0";
+window.SUPABASE_URL =
+  "https://khjmouwldnjwzvdxnbty.supabase.co";
 
-window.supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+window.SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtoam1vdXdsZG5qd3p2ZHhuYnR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwNjE0MjUsImV4cCI6MjEwMzYzNzQyNX0.pmU13DeACsbQQweV-7QLY_mYfqtRL9JWZXr18DQY1Rs";
