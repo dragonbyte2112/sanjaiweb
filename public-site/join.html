@@ -3,151 +3,1109 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Join — DragonByte</title>
+
   <link rel="icon" href="/assets/img/logo-icon.png" />
   <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
+
 <body>
+
   <div id="site-header"></div>
+
   <main>
 
-    <div id="join-success" class="hidden" style="min-height:80vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(145deg, #f8fafc, #eff6ff);">
-      <div class="text-center card" style="max-width:480px; padding:48px; box-shadow:0 24px 60px rgba(15,23,42,0.08);">
-        <div style="font-size:3rem; margin-bottom:16px;">🎉</div>
-        <h2 class="h2 mb-3">Application Received!</h2>
-        <p class="text-sm text-muted">Thanks for applying to DragonByte! Our team will review your application and reach out within a few days.</p>
+    <!-- ============================= -->
+    <!-- SUCCESS MESSAGE -->
+    <!-- ============================= -->
+
+    <div
+      id="join-success"
+      class="hidden"
+      style="
+        min-height:80vh;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background:linear-gradient(145deg,#f8fafc,#eff6ff);
+      "
+    >
+      <div
+        class="text-center card"
+        style="
+          max-width:480px;
+          padding:48px;
+          box-shadow:0 24px 60px rgba(15,23,42,0.08);
+        "
+      >
+
+        <div style="font-size:3rem;margin-bottom:16px;">
+          🎉
+        </div>
+
+        <h2 class="h2 mb-3">
+          Application Received!
+        </h2>
+
+        <p class="text-sm text-muted">
+          Thanks for applying to DragonByte!
+          Our team will review your application
+          and reach out within a few days.
+        </p>
+
       </div>
     </div>
 
+
+    <!-- ============================= -->
+    <!-- FORM WRAPPER -->
+    <!-- ============================= -->
+
     <div id="join-form-wrap">
-      <section style="padding:80px 0 40px; background:linear-gradient(145deg, #f8fafc, #eff6ff);">
+
+      <!-- HEADER -->
+
+      <section
+        style="
+          padding:80px 0 40px;
+          background:linear-gradient(145deg,#f8fafc,#eff6ff);
+        "
+      >
+
         <div class="container-sm text-center">
-          <p class="eyebrow">Become a member</p>
-          <h1 class="h1 mb-2">Join DragonByte</h1>
-          <p class="lead">Tell us a bit about yourself and we'll get you set up.</p>
+
+          <p class="eyebrow">
+            Become a member
+          </p>
+
+          <h1 class="h1 mb-2">
+            Join DragonByte
+          </h1>
+
+          <p class="lead">
+            Tell us a bit about yourself and we'll get you set up.
+          </p>
+
         </div>
+
       </section>
 
-      <section class="section" style="padding-top:40px;">
+
+      <!-- FORM -->
+
+      <section
+        class="section"
+        style="padding-top:40px;"
+      >
+
         <div class="container-sm">
-          <form id="join-form" class="card">
+
+          <form
+            id="join-form"
+            class="card"
+            enctype="multipart/form-data"
+          >
+
+
+            <!-- ============================= -->
+            <!-- BASIC INFORMATION -->
+            <!-- ============================= -->
+
             <div class="grid grid-2">
+
+              <!-- NAME -->
+
               <div class="field">
-                <label for="name">Full name *</label>
-                <input id="name" name="name" required />
+
+                <label for="name">
+                  Full name *
+                </label>
+
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  autocomplete="name"
+                />
+
               </div>
+
+
+              <!-- EMAIL -->
+
               <div class="field">
-                <label for="email">Email *</label>
-                <input id="email" name="email" type="email" required />
+
+                <label for="email">
+                  Email *
+                </label>
+
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  autocomplete="email"
+                />
+
               </div>
+
+
+              <!-- USERNAME -->
+
               <div class="field">
-                <label for="username">Preferred username *</label>
-                <input id="username" name="username" required />
+
+                <label for="username">
+                  Preferred username *
+                </label>
+
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  autocomplete="username"
+                />
+
               </div>
+
+
+              <!-- EXPERIENCE -->
+
               <div class="field">
-                <label for="experience">Experience level</label>
-                <select id="experience">
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                  <option value="professional">Professional</option>
+
+                <label for="experience">
+                  Experience level
+                </label>
+
+                <select
+                  id="experience"
+                  name="experience"
+                >
+
+                  <option value="beginner">
+                    Beginner
+                  </option>
+
+                  <option value="intermediate">
+                    Intermediate
+                  </option>
+
+                  <option value="advanced">
+                    Advanced
+                  </option>
+
+                  <option value="professional">
+                    Professional
+                  </option>
+
                 </select>
+
               </div>
+
             </div>
 
-            <div class="field">
-              <label for="skills">Skills (comma separated)</label>
-              <input id="skills" name="skills" placeholder="e.g. Python, Web Security, Reverse Engineering" />
-            </div>
+
+            <!-- ============================= -->
+            <!-- PROFILE PHOTO -->
+            <!-- ============================= -->
 
             <div class="field">
-              <label>Interests</label>
-              <div id="interests-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:8px; margin-top:6px;"></div>
+
+              <label for="profile-photo">
+                Profile Photo
+              </label>
+
+              <input
+                id="profile-photo"
+                name="profile_photo"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+              />
+
+              <p
+                class="text-xs text-muted"
+                style="margin-top:6px;"
+              >
+                Upload JPG, PNG or WebP. Maximum 5 MB.
+              </p>
+
+
+              <!-- PHOTO PREVIEW -->
+
+              <div
+                id="photo-preview"
+                style="
+                  margin-top:15px;
+                  display:none;
+                "
+              >
+
+                <img
+                  id="photo-preview-image"
+                  src=""
+                  alt="Profile photo preview"
+                  style="
+                    width:110px;
+                    height:110px;
+                    object-fit:cover;
+                    border-radius:50%;
+                    border:3px solid var(--border);
+                    display:block;
+                  "
+                />
+
+                <button
+                  type="button"
+                  id="remove-photo"
+                  class="btn btn-outline btn-sm"
+                  style="margin-top:10px;"
+                >
+                  Remove Photo
+                </button>
+
+              </div>
+
             </div>
+
+
+            <!-- ============================= -->
+            <!-- SKILLS -->
+            <!-- ============================= -->
+
+            <div class="field">
+
+              <label for="skills">
+                Skills (comma separated)
+              </label>
+
+              <input
+                id="skills"
+                name="skills"
+                type="text"
+                placeholder="e.g. Python, Web Security, Reverse Engineering"
+              />
+
+            </div>
+
+
+            <!-- ============================= -->
+            <!-- INTERESTS -->
+            <!-- ============================= -->
+
+            <div class="field">
+
+              <label>
+                Interests
+              </label>
+
+              <div
+                id="interests-grid"
+                style="
+                  display:grid;
+                  grid-template-columns:repeat(
+                    auto-fill,
+                    minmax(160px,1fr)
+                  );
+                  gap:8px;
+                  margin-top:6px;
+                "
+              ></div>
+
+            </div>
+
+
+            <!-- ============================= -->
+            <!-- SOCIAL LINKS -->
+            <!-- ============================= -->
 
             <div class="grid grid-2">
+
+              <!-- GITHUB -->
+
               <div class="field">
-                <label for="github">GitHub (optional)</label>
-                <input id="github" placeholder="https://github.com/yourname" />
+
+                <label for="github">
+                  GitHub (optional)
+                </label>
+
+                <input
+                  id="github"
+                  name="github"
+                  type="url"
+                  placeholder="https://github.com/yourname"
+                />
+
               </div>
+
+
+              <!-- LINKEDIN -->
+
               <div class="field">
-                <label for="linkedin">LinkedIn (optional)</label>
-                <input id="linkedin" placeholder="https://linkedin.com/in/yourname" />
+
+                <label for="linkedin">
+                  LinkedIn (optional)
+                </label>
+
+                <input
+                  id="linkedin"
+                  name="linkedin"
+                  type="url"
+                  placeholder="https://linkedin.com/in/yourname"
+                />
+
               </div>
+
             </div>
+
+
+            <!-- ============================= -->
+            <!-- MESSAGE -->
+            <!-- ============================= -->
 
             <div class="field">
-              <label for="message">Why do you want to join?</label>
-              <textarea id="message" name="message" rows="4"></textarea>
+
+              <label for="message">
+                Why do you want to join?
+              </label>
+
+              <textarea
+                id="message"
+                name="message"
+                rows="4"
+              ></textarea>
+
             </div>
 
-            <p id="join-error" class="form-error hidden"></p>
-            <button type="submit" id="join-submit" class="btn btn-primary btn-block">Submit Application</button>
+
+            <!-- ============================= -->
+            <!-- ERROR -->
+            <!-- ============================= -->
+
+            <p
+              id="join-error"
+              class="form-error hidden"
+            ></p>
+
+
+            <!-- ============================= -->
+            <!-- SUBMIT -->
+            <!-- ============================= -->
+
+            <button
+              type="submit"
+              id="join-submit"
+              class="btn btn-primary btn-block"
+            >
+              Submit Application
+            </button>
+
+
           </form>
+
         </div>
+
       </section>
+
     </div>
 
   </main>
+
+
   <div id="site-footer"></div>
 
+
+  <!-- ================================================= -->
+  <!-- IMPORTANT SCRIPT ORDER                            -->
+  <!-- ================================================= -->
+
+  <!-- 1. SUPABASE LIBRARY MUST COME FIRST -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+  <!-- 2. YOUR SUPABASE CONFIG -->
+
+  <script src="/assets/js/supabase.js"></script>
+
+
+  <!-- 3. API -->
+
   <script src="/assets/js/api.js"></script>
+
+
+  <!-- 4. LAYOUT -->
+
   <script src="/assets/js/layout.js"></script>
+
+
+  <!-- ================================================= -->
+  <!-- JOIN PAGE JAVASCRIPT                              -->
+  <!-- ================================================= -->
+
   <script>
-    const INTEREST_OPTIONS = ["Web Security", "Cryptography", "Forensics", "OSINT", "Reverse Engineering", "Malware Analysis", "Network Security", "Cloud Security", "Bug Bounty", "CTF Competitions"];
+
+    "use strict";
+
+
+    // ============================================
+    // INTEREST OPTIONS
+    // ============================================
+
+    const INTEREST_OPTIONS = [
+      "Web Security",
+      "Cryptography",
+      "Forensics",
+      "OSINT",
+      "Reverse Engineering",
+      "Malware Analysis",
+      "Network Security",
+      "Cloud Security",
+      "Bug Bounty",
+      "CTF Competitions"
+    ];
+
+
     const selectedInterests = new Set();
 
-    function renderInterests() {
-      const el = document.getElementById("interests-grid");
-      el.innerHTML = INTEREST_OPTIONS.map(i => `
-        <label style="display:flex; align-items:center; gap:6px; font-size:0.82rem; padding:8px 10px; border:1.5px solid var(--border); border-radius:10px; cursor:pointer;">
-          <input type="checkbox" data-interest="${esc(i)}" style="width:auto;" />
-          ${esc(i)}
-        </label>
-      `).join("");
-      el.querySelectorAll("input[type=checkbox]").forEach(cb => {
-        cb.addEventListener("change", () => {
-          if (cb.checked) selectedInterests.add(cb.dataset.interest);
-          else selectedInterests.delete(cb.dataset.interest);
-        });
-      });
-    }
+
+    // ============================================
+    // HTML ESCAPE
+    // ============================================
+
     function esc(str) {
-      return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
     }
+
+
+    // ============================================
+    // RENDER INTERESTS
+    // ============================================
+
+    function renderInterests() {
+
+      const el =
+        document.getElementById("interests-grid");
+
+      if (!el) return;
+
+
+      el.innerHTML =
+        INTEREST_OPTIONS.map((interest) => {
+
+          return `
+
+            <label
+              style="
+                display:flex;
+                align-items:center;
+                gap:8px;
+                font-size:0.82rem;
+                padding:10px 12px;
+                border:1.5px solid var(--border);
+                border-radius:10px;
+                cursor:pointer;
+                background:#fff;
+              "
+            >
+
+              <input
+                type="checkbox"
+                data-interest="${esc(interest)}"
+                style="width:auto;"
+              />
+
+              <span>
+                ${esc(interest)}
+              </span>
+
+            </label>
+
+          `;
+
+        }).join("");
+
+
+      el
+        .querySelectorAll(
+          'input[type="checkbox"]'
+        )
+        .forEach((checkbox) => {
+
+          checkbox.addEventListener(
+            "change",
+            () => {
+
+              const interest =
+                checkbox.dataset.interest;
+
+              if (checkbox.checked) {
+
+                selectedInterests.add(interest);
+
+              } else {
+
+                selectedInterests.delete(interest);
+
+              }
+
+            }
+          );
+
+        });
+
+    }
+
+
     renderInterests();
 
-    document.getElementById("join-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById("join-submit");
-      const errEl = document.getElementById("join-error");
-      errEl.classList.add("hidden");
-      btn.disabled = true;
-      btn.textContent = "Submitting…";
 
-      const payload = {
-        name: document.getElementById("name").value,
-        email: document.getElementById("email").value,
-        username: document.getElementById("username").value,
-        experience: document.getElementById("experience").value,
-        skills: document.getElementById("skills").value,
-        interests: Array.from(selectedInterests),
-        github: document.getElementById("github").value,
-        linkedin: document.getElementById("linkedin").value,
-        message: document.getElementById("message").value,
-      };
+    // ============================================
+    // PHOTO ELEMENTS
+    // ============================================
 
-      try {
-        await Api.post("/join", payload);
-        document.getElementById("join-form-wrap").classList.add("hidden");
-        document.getElementById("join-success").classList.remove("hidden");
-      } catch (err) {
-        errEl.textContent = err.message || "Something went wrong. Please try again.";
-        errEl.classList.remove("hidden");
-        btn.disabled = false;
-        btn.textContent = "Submit Application";
+    const photoInput =
+      document.getElementById("profile-photo");
+
+    const photoPreview =
+      document.getElementById("photo-preview");
+
+    const photoPreviewImage =
+      document.getElementById(
+        "photo-preview-image"
+      );
+
+    const removePhotoButton =
+      document.getElementById("remove-photo");
+
+
+    // ============================================
+    // PHOTO PREVIEW
+    // ============================================
+
+    if (photoInput) {
+
+      photoInput.addEventListener(
+        "change",
+        function () {
+
+          const file = this.files?.[0];
+
+          if (!file) {
+
+            photoPreview.style.display = "none";
+
+            photoPreviewImage.src = "";
+
+            return;
+
+          }
+
+
+          // Maximum 5 MB
+
+          if (file.size > 5 * 1024 * 1024) {
+
+            alert(
+              "Profile photo must be smaller than 5 MB."
+            );
+
+            this.value = "";
+
+            photoPreview.style.display = "none";
+
+            photoPreviewImage.src = "";
+
+            return;
+
+          }
+
+
+          // Allowed file types
+
+          const allowedTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+          ];
+
+
+          if (!allowedTypes.includes(file.type)) {
+
+            alert(
+              "Please upload JPG, PNG or WebP only."
+            );
+
+            this.value = "";
+
+            photoPreview.style.display = "none";
+
+            photoPreviewImage.src = "";
+
+            return;
+
+          }
+
+
+          // Create preview
+
+          const objectURL =
+            URL.createObjectURL(file);
+
+          photoPreviewImage.src =
+            objectURL;
+
+          photoPreview.style.display =
+            "block";
+
+        }
+      );
+
+    }
+
+
+    // ============================================
+    // REMOVE PHOTO
+    // ============================================
+
+    if (removePhotoButton) {
+
+      removePhotoButton.addEventListener(
+        "click",
+        () => {
+
+          photoInput.value = "";
+
+          photoPreviewImage.src = "";
+
+          photoPreview.style.display =
+            "none";
+
+        }
+      );
+
+    }
+
+
+    // ============================================
+    // SUPABASE CLIENT
+    // ============================================
+
+    function getSupabaseClient() {
+
+      /*
+       * Your supabase.js normally creates
+       * the DragonByte Supabase client.
+       *
+       * Try common names used by the project.
+       */
+
+      if (
+        window.supabaseClient &&
+        typeof window.supabaseClient
+          .from === "function"
+      ) {
+
+        return window.supabaseClient;
+
       }
-    });
+
+
+      if (
+        window.supabase &&
+        typeof window.supabase
+          .from === "function"
+      ) {
+
+        return window.supabase;
+
+      }
+
+
+      return null;
+
+    }
+
+
+    // ============================================
+    // UPLOAD PROFILE PHOTO
+    // ============================================
+
+    async function uploadProfilePhoto(file) {
+
+      if (!file) {
+
+        return "";
+
+      }
+
+
+      const client =
+        getSupabaseClient();
+
+
+      if (!client) {
+
+        throw new Error(
+          "Supabase client is not available."
+        );
+
+      }
+
+
+      // Unique filename
+
+      const extension =
+        file.name
+          .split(".")
+          .pop()
+          .toLowerCase();
+
+
+      const safeUsername =
+        document
+          .getElementById("username")
+          .value
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]/g, "-");
+
+
+      const uniqueName =
+        `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 10)}`;
+
+
+      const filePath =
+        `${safeUsername || "member"}/${uniqueName}.${extension}`;
+
+
+      // Upload to Storage
+
+      const { error: uploadError } =
+        await client
+          .storage
+          .from("member-photos")
+          .upload(
+            filePath,
+            file,
+            {
+              cacheControl: "3600",
+              upsert: false,
+              contentType: file.type
+            }
+          );
+
+
+      if (uploadError) {
+
+        console.error(
+          "DragonByte photo upload error:",
+          uploadError
+        );
+
+        throw uploadError;
+
+      }
+
+
+      // Get public URL
+
+      const { data } =
+        client
+          .storage
+          .from("member-photos")
+          .getPublicUrl(filePath);
+
+
+      const publicURL =
+        data?.publicUrl || "";
+
+
+      if (!publicURL) {
+
+        throw new Error(
+          "Photo uploaded, but public URL could not be generated."
+        );
+
+      }
+
+
+      console.log(
+        "DragonByte profile photo:",
+        publicURL
+      );
+
+
+      return publicURL;
+
+    }
+
+
+    // ============================================
+    // FORM SUBMIT
+    // ============================================
+
+    document
+      .getElementById("join-form")
+      .addEventListener(
+        "submit",
+        async (event) => {
+
+          event.preventDefault();
+
+
+          const button =
+            document.getElementById(
+              "join-submit"
+            );
+
+
+          const errorElement =
+            document.getElementById(
+              "join-error"
+            );
+
+
+          errorElement.classList.add(
+            "hidden"
+          );
+
+
+          button.disabled = true;
+
+          button.textContent =
+            "Submitting…";
+
+
+          try {
+
+
+            // ==================================
+            // CHECK API
+            // ==================================
+
+            if (
+              !window.Api ||
+              typeof window.Api.post !==
+                "function"
+            ) {
+
+              throw new Error(
+                "DragonByte API is not available."
+              );
+
+            }
+
+
+            // ==================================
+            // GET PHOTO
+            // ==================================
+
+            const photoFile =
+              photoInput?.files?.[0] || null;
+
+
+            let photoURL = "";
+
+
+            // ==================================
+            // UPLOAD PHOTO IF SELECTED
+            // ==================================
+
+            if (photoFile) {
+
+              button.textContent =
+                "Uploading photo…";
+
+
+              photoURL =
+                await uploadProfilePhoto(
+                  photoFile
+                );
+
+            }
+
+
+            // ==================================
+            // BUILD PAYLOAD
+            // ==================================
+
+            button.textContent =
+              "Submitting…";
+
+
+            const payload = {
+
+              name:
+                document
+                  .getElementById("name")
+                  .value
+                  .trim(),
+
+              email:
+                document
+                  .getElementById("email")
+                  .value
+                  .trim(),
+
+              username:
+                document
+                  .getElementById("username")
+                  .value
+                  .trim(),
+
+              experience:
+                document
+                  .getElementById("experience")
+                  .value,
+
+              skills:
+                document
+                  .getElementById("skills")
+                  .value
+                  .trim(),
+
+              interests:
+                Array.from(
+                  selectedInterests
+                ),
+
+              github:
+                document
+                  .getElementById("github")
+                  .value
+                  .trim(),
+
+              linkedin:
+                document
+                  .getElementById("linkedin")
+                  .value
+                  .trim(),
+
+              message:
+                document
+                  .getElementById("message")
+                  .value
+                  .trim(),
+
+              // Profile photo URL
+
+              photo_url:
+                photoURL
+
+            };
+
+
+            console.log(
+              "DragonByte Join payload:",
+              payload
+            );
+
+
+            // ==================================
+            // SEND TO API
+            // ==================================
+
+            await window.Api.post(
+              "/join",
+              payload
+            );
+
+
+            // ==================================
+            // SUCCESS
+            // ==================================
+
+            document
+              .getElementById(
+                "join-form-wrap"
+              )
+              .classList.add("hidden");
+
+
+            document
+              .getElementById(
+                "join-success"
+              )
+              .classList.remove("hidden");
+
+
+            window.scrollTo({
+              top: 0,
+              behavior: "smooth"
+            });
+
+
+          } catch (error) {
+
+
+            console.error(
+              "DragonByte Join Error:",
+              error
+            );
+
+
+            let message =
+              error?.message ||
+              "Something went wrong. Please try again.";
+
+
+            // Friendly storage errors
+
+            if (
+              message
+                .toLowerCase()
+                .includes("bucket")
+            ) {
+
+              message =
+                "Photo storage is not configured. Please contact the DragonByte admin.";
+
+            }
+
+
+            if (
+              message
+                .toLowerCase()
+                .includes("row-level security")
+            ) {
+
+              message =
+                "The application was blocked by Supabase security policy. Please contact the DragonByte admin.";
+
+            }
+
+
+            errorElement.textContent =
+              message;
+
+
+            errorElement.classList.remove(
+              "hidden"
+            );
+
+
+            button.disabled = false;
+
+            button.textContent =
+              "Submit Application";
+
+          }
+
+        }
+      );
+
   </script>
+
 </body>
 </html>
