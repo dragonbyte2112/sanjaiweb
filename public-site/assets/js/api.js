@@ -1,24 +1,24 @@
 /* =========================================================
-   DragonByte API - Supabase
-   Public frontend + Admin
+   DragonByte API - Supabase client
+   Single browser API used by public pages and admin.html.
    ========================================================= */
 
 (function () {
   "use strict";
 
   // =========================================================
-  // NEW DRAGONBYTE SUPABASE PROJECT
+  // SUPABASE CONFIG
   // =========================================================
 
   const SUPABASE_URL =
     "https://khjmouwldnjwzvdxnbty.supabase.co";
 
-  // PUBLIC ANON KEY ONLY.
-  // NEVER put sb_secret_... here.
-  const SUPABASE_ANON_KEY =
+  // IMPORTANT:
+  // Use your Supabase ANON / publishable key here.
+  // NEVER use sb_secret_... in browser JavaScript.
+  const SUPABASE_PUBLISHABLE_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtoam1vdXdsZG5qd3p2ZHhuYnR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwNjE0MjUsImV4cCI6MjEwMzYzNzQyNX0.pmU13DeACsbQQweV-7QLY_mYfqtRL9JWZXr18DQY1Rs";
 
-  const STORAGE_BUCKET = "dragonbyte-media";
 
   // =========================================================
   // SUPABASE CLIENT
@@ -34,22 +34,23 @@
       typeof window.supabase.createClient !== "function"
     ) {
       throw new Error(
-        "Supabase library is not loaded. Load @supabase/supabase-js before dragonbyte-api.js."
+        "Supabase library is not loaded. Load @supabase/supabase-js before api.js."
       );
     }
 
     window.supabaseClient = window.supabase.createClient(
       SUPABASE_URL,
-      SUPABASE_ANON_KEY
+      SUPABASE_PUBLISHABLE_KEY
     );
 
-    console.log("DragonByte Supabase connected:", SUPABASE_URL);
+    console.log("DragonByte Supabase connected!");
 
     return window.supabaseClient;
   }
 
+
   // =========================================================
-  // TABLE MAP
+  // API TABLES
   // =========================================================
 
   const API_TABLES = {
@@ -58,8 +59,121 @@
     "/contributors": "contributors",
     "/testimonials": "testimonials",
     "/teams": "teams",
-    "/members": "members",
+    "/members": "members"
   };
+
+
+  function resolveTable(path) {
+    if (API_TABLES[path]) {
+      return API_TABLES[path];
+    }
+
+    if (path.endsWith("/admin/all")) {
+      const basePath = path.replace(/\/admin\/all$/, "");
+
+      if (API_TABLES[basePath]) {
+        return API_TABLES[basePath];
+      }
+    }
+
+    throw new Error(`Unknown API endpoint: ${path}`);
+  }
+
+
+  // =========================================================
+  // DATABASE FIELD MAPPING
+  // =========================================================
+
+  const FIELD_MAP = {
+
+    events: {
+      registrationUrl: "registration_url",
+      coverPhoto: "cover_photo"
+    },
+
+    projects: {
+      githubUrl: "github_url",
+      demoUrl: "demo_url",
+      resourceUrl: "resource_url",
+      coverPhoto: "cover_photo"
+    },
+
+    contributors: {
+      coverPhoto: "cover_photo"
+    },
+
+    testimonials: {
+      coverPhoto: "cover_photo"
+    },
+
+    teams: {
+      logoUrl: "logo_url",
+      githubUrl: "github_url",
+      websiteUrl: "website_url",
+      membersCount: "members_count"
+    },
+
+    members: {
+      joinedAt: "joined_at"
+    }
+
+  };
+
+
+  // =========================================================
+  // FRONTEND -> DATABASE
+  // =========================================================
+
+  function toDb(table, value) {
+    const map = FIELD_MAP[table];
+
+    if (!map || !value) {
+      return value;
+    }
+
+    const out = {};
+
+    for (const [key, val] of Object.entries(value)) {
+      out[map[key] || key] = val;
+    }
+
+    return out;
+  }
+
+
+  // =========================================================
+  // DATABASE -> FRONTEND
+  // =========================================================
+
+  function fromDb(table, value) {
+    const map = FIELD_MAP[table];
+
+    if (!map || !value) {
+      return value;
+    }
+
+    const reverse = Object.fromEntries(
+      Object.entries(map).map(([a, b]) => [b, a])
+    );
+
+    const out = {};
+
+    for (const [key, val] of Object.entries(value)) {
+      out[reverse[key] || key] = val;
+    }
+
+    return out;
+  }
+
+
+  function fromDbList(table, list) {
+    return (list || []).map((row) => fromDb(table, row));
+  }
+
+
+  // =========================================================
+  // ENTITY TABLES
+  // =========================================================
 
   const ENTITY_TABLES = [
     "events",
@@ -67,139 +181,36 @@
     "contributors",
     "testimonials",
     "members",
-    "teams",
+    "teams"
   ];
+
 
   const PUBLISHED_TABLES = new Set([
     "events",
-    "projects",
+    "projects"
   ]);
+
 
   const APPROVED_TABLES = new Set([
-    "testimonials",
+    "testimonials"
   ]);
 
-  // =========================================================
-  // DATABASE FIELD MAP
-  // =========================================================
-
-  const FIELD_MAP = {
-    events: {
-      registrationUrl: "registration_url",
-      coverPhoto: "cover_photo",
-    },
-
-    projects: {
-      githubUrl: "github_url",
-      demoUrl: "demo_url",
-      resourceUrl: "resource_url",
-      coverPhoto: "cover_photo",
-    },
-
-    contributors: {
-      coverPhoto: "cover_photo",
-    },
-
-    testimonials: {
-      coverPhoto: "cover_photo",
-    },
-
-    teams: {
-      logoUrl: "logo_url",
-      githubUrl: "github_url",
-      websiteUrl: "website_url",
-      membersCount: "members_count",
-    },
-
-    members: {
-      joinedAt: "joined_at",
-    },
-  };
-
-  // =========================================================
-  // REMOVE AUTO/IDENTITY FIELDS
-  // IMPORTANT:
-  // NEVER SEND id FROM CREATE FORM
-  // =========================================================
-
-  const AUTO_FIELDS = new Set([
-    "id",
-    "created_at",
-    "updated_at",
-  ]);
-
-  function cleanPayload(value) {
-    const output = {};
-
-    if (!value || typeof value !== "object") {
-      return output;
-    }
-
-    Object.entries(value).forEach(([key, val]) => {
-      if (AUTO_FIELDS.has(key)) return;
-
-      output[key] = val;
-    });
-
-    return output;
-  }
-
-  function toDb(table, value) {
-    const map = FIELD_MAP[table] || {};
-    const source = cleanPayload(value);
-    const output = {};
-
-    Object.entries(source).forEach(([key, val]) => {
-      output[map[key] || key] = val;
-    });
-
-    return output;
-  }
-
-  function fromDb(table, value) {
-    if (!value) return value;
-
-    const map = FIELD_MAP[table] || {};
-
-    const reverse = Object.fromEntries(
-      Object.entries(map).map(([frontend, database]) => [
-        database,
-        frontend,
-      ])
-    );
-
-    const output = {};
-
-    Object.entries(value).forEach(([key, val]) => {
-      output[reverse[key] || key] = val;
-    });
-
-    return output;
-  }
-
-  function fromDbList(table, list) {
-    return (list || []).map((row) =>
-      fromDb(table, row)
-    );
-  }
-
-  // =========================================================
-  // ENTITY PATH
-  // =========================================================
 
   function matchEntity(path) {
+
     for (const table of ENTITY_TABLES) {
+
       if (path === `/${table}`) {
         return {
           table,
-          mode: "public-list",
+          mode: "public-list"
         };
       }
 
       if (path === `/${table}/admin/all`) {
         return {
           table,
-          mode: "admin-list",
+          mode: "admin-list"
         };
       }
 
@@ -211,7 +222,7 @@
         return {
           table,
           mode: "item",
-          id: match[1],
+          id: match[1]
         };
       }
     }
@@ -219,126 +230,89 @@
     return null;
   }
 
-  // =========================================================
-  // FILE UPLOAD
-  // =========================================================
-
-  async function uploadImage(file, folder = "images") {
-    if (!file) {
-      throw new Error("Please select an image.");
-    }
-
-    if (!file.type.startsWith("image/")) {
-      throw new Error("Only image files are allowed.");
-    }
-
-    const maxSize = 5 * 1024 * 1024;
-
-    if (file.size > maxSize) {
-      throw new Error("Image must be smaller than 5 MB.");
-    }
-
-    const client = getClient();
-
-    const extension =
-      file.name.split(".").pop().toLowerCase() || "jpg";
-
-    const safeName =
-      `${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 10)}.${extension}`;
-
-    const path = `${folder}/${safeName}`;
-
-    const { error } = await client.storage
-      .from(STORAGE_BUCKET)
-      .upload(path, file, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: file.type,
-      });
-
-    if (error) {
-      console.error("Storage upload error:", error);
-      throw new Error(
-        `Image upload failed: ${error.message}`
-      );
-    }
-
-    const { data } = client.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(path);
-
-    if (!data?.publicUrl) {
-      throw new Error(
-        "Image uploaded but public URL could not be generated."
-      );
-    }
-
-    return data.publicUrl;
-  }
 
   // =========================================================
-  // API
+  // API OBJECT
   // =========================================================
 
   const Api = {
+
     _session: null,
 
-    // -------------------------------------------------------
-    // INIT
-    // -------------------------------------------------------
+    _authListenerInstalled: false,
+
+
+    // =======================================================
+    // INITIALIZE
+    // =======================================================
 
     async init() {
+
       const client = getClient();
 
       const {
         data,
-        error,
+        error
       } = await client.auth.getSession();
 
       if (error) {
         console.warn(
-          "DragonByte session:",
+          "DragonByte session check:",
           error.message
         );
       }
 
       Api._session = data?.session || null;
 
+
       if (!Api._authListenerInstalled) {
+
         client.auth.onAuthStateChange(
           (_event, session) => {
+
             Api._session = session || null;
 
             if (session?.access_token) {
+
               localStorage.setItem(
                 "db_admin_token",
                 session.access_token
               );
+
             } else {
+
               localStorage.removeItem(
                 "db_admin_token"
               );
+
             }
+
           }
         );
 
         Api._authListenerInstalled = true;
       }
 
+
       return Api._session;
     },
 
-    // -------------------------------------------------------
-    // AUTH
-    // -------------------------------------------------------
+
+    // =======================================================
+    // AUTH CHECK
+    // =======================================================
 
     isAuthed() {
       return !!Api._session;
     },
 
+
+    // =======================================================
+    // LOGIN
+    // =======================================================
+
     async login(email, password) {
+
       if (!email || !password) {
         throw new Error(
           "Email and password are required."
@@ -349,30 +323,55 @@
 
       const {
         data,
-        error,
+        error
       } = await client.auth.signInWithPassword({
+
         email: email.trim(),
-        password,
+
+        password: password
+
       });
+
 
       if (error) {
         throw error;
       }
 
+
       Api._session = data?.session || null;
+
+
+      if (data?.session?.access_token) {
+
+        localStorage.setItem(
+          "db_admin_token",
+          data.session.access_token
+        );
+
+      }
+
 
       return data;
     },
 
+
+    // =======================================================
+    // LOGOUT
+    // =======================================================
+
     async logout() {
+
       const client = getClient();
 
-      const { error } =
-        await client.auth.signOut();
+      const {
+        error
+      } = await client.auth.signOut();
+
 
       if (error) {
         throw error;
       }
+
 
       Api._session = null;
 
@@ -380,270 +379,369 @@
         "db_admin_token"
       );
 
+
       return true;
     },
 
-    // -------------------------------------------------------
-    // UPLOAD
-    // -------------------------------------------------------
 
-    uploadImage,
-
-    // -------------------------------------------------------
+    // =======================================================
     // GET
-    // -------------------------------------------------------
+    // =======================================================
 
     async get(path) {
+
       const client = getClient();
 
-      // Dashboard stats
+
+      // -----------------------------------------------------
+      // ADMIN STATS
+      // -----------------------------------------------------
+
       if (path === "/admin/stats") {
-        try {
-          const {
-            data,
-            error,
-          } = await client.rpc("admin_stats");
 
-          if (!error) {
-            return data || {};
-          }
-        } catch (_) {}
+        const {
+          data,
+          error
+        } = await client.rpc("admin_stats");
 
-        // Safe fallback if RPC is unavailable
-        const tables = [
-          "members",
-          "events",
-          "projects",
-          "testimonials",
-          "challenges",
-        ];
 
-        const stats = {
-          members: 0,
-          events: 0,
-          projects: 0,
-          testimonials: 0,
-          challenges: 0,
-          joinRequests: 0,
-          messages: 0,
-          ctfSolves: 0,
-        };
-
-        for (const table of tables) {
-          try {
-            const { count } = await client
-              .from(table)
-              .select("*", {
-                count: "exact",
-                head: true,
-              });
-
-            if (table === "members")
-              stats.members = count || 0;
-
-            if (table === "events")
-              stats.events = count || 0;
-
-            if (table === "projects")
-              stats.projects = count || 0;
-
-            if (table === "testimonials")
-              stats.testimonials = count || 0;
-
-            if (table === "challenges")
-              stats.challenges = count || 0;
-          } catch (_) {}
+        if (error) {
+          throw error;
         }
 
-        return stats;
+
+        return data || {};
       }
 
-      // CTF public
+
+      // -----------------------------------------------------
+      // PUBLIC CTF CHALLENGES
+      // -----------------------------------------------------
+
       if (path === "/ctf/challenges") {
+
         const {
           data,
-          error,
+          error
         } = await client
           .from("public_challenges")
-          .select("*");
+          .select("*")
+          .order(
+            "created_at",
+            {
+              ascending: false
+            }
+          );
 
-        if (error) throw error;
 
-        return (data || []).map((row) => ({
-          ...row,
-          solvedCount: row.solved_count,
-        }));
+        if (error) {
+          throw error;
+        }
+
+
+        return (data || []).map(
+          (row) => ({
+            ...row,
+            solvedCount: row.solved_count
+          })
+        );
       }
 
-      // CTF admin
+
+      // -----------------------------------------------------
+      // ADMIN CTF CHALLENGES
+      // -----------------------------------------------------
+
       if (path === "/ctf/challenges/admin/all") {
+
         const {
           data,
-          error,
+          error
         } = await client
           .from("admin_challenges")
-          .select("*");
+          .select("*")
+          .order(
+            "created_at",
+            {
+              ascending: false
+            }
+          );
 
-        if (error) throw error;
 
-        return (data || []).map((row) => ({
-          ...row,
-          hasFlag: row.has_flag,
-        }));
+        if (error) {
+          throw error;
+        }
+
+
+        return (data || []).map(
+          (row) => ({
+            ...row,
+            hasFlag: row.has_flag
+          })
+        );
       }
 
-      // Leaderboard
+
+      // -----------------------------------------------------
+      // LEADERBOARD
+      // -----------------------------------------------------
+
       if (path === "/ctf/leaderboard") {
+
         const {
           data,
-          error,
+          error
         } = await client
           .from("leaderboard")
           .select("*");
 
-        if (error) throw error;
 
-        return (data || []).map((row) => ({
-          handle: row.handle,
-          points: row.points,
-          solves: row.solves,
-          lastSolveAt: row.last_solve_at,
-        }));
+        if (error) {
+          throw error;
+        }
+
+
+        return (data || []).map(
+          (row) => ({
+
+            handle: row.handle,
+
+            points: row.points,
+
+            solves: row.solves,
+
+            lastSolveAt: row.last_solve_at
+
+          })
+        );
       }
 
-      // CTF stats
+
+      // -----------------------------------------------------
+      // CTF STATS
+      // -----------------------------------------------------
+
       if (path === "/ctf/stats") {
+
         const [
-          challengesResult,
-          leaderboardResult,
+          {
+            data: challenges,
+            error: cErr
+          },
+
+          {
+            data: leaderboard,
+            error: lErr
+          }
+
         ] = await Promise.all([
+
           client
             .from("public_challenges")
             .select("*"),
 
           client
             .from("leaderboard")
-            .select("*"),
+            .select("*")
+
         ]);
 
-        if (challengesResult.error) {
-          throw challengesResult.error;
+
+        if (cErr) {
+          throw cErr;
         }
 
-        if (leaderboardResult.error) {
-          throw leaderboardResult.error;
+        if (lErr) {
+          throw lErr;
         }
 
-        const challenges =
-          challengesResult.data || [];
 
-        const leaderboard =
-          leaderboardResult.data || [];
+        const rows = challenges || [];
+
 
         return {
-          challenges: challenges.length,
 
-          categories: new Set(
-            challenges
-              .map((x) => x.category)
-              .filter(Boolean)
-          ).size,
+          challenges: rows.length,
 
-          totalPoints: challenges.reduce(
-            (sum, x) =>
-              sum + Number(x.points || 0),
-            0
-          ),
+          categories:
+            new Set(
+              rows
+                .map(
+                  (row) => row.category
+                )
+                .filter(Boolean)
+            ).size,
+
+          totalPoints:
+            rows.reduce(
+              (sum, row) =>
+                sum +
+                Number(
+                  row.points || 0
+                ),
+              0
+            ),
 
           solvedChallenges:
-            challenges.filter(
-              (x) =>
-                Number(x.solved_count || 0) > 0
+            rows.filter(
+              (row) =>
+                Number(
+                  row.solved_count || 0
+                ) > 0
             ).length,
 
           totalSolves:
-            leaderboard.reduce(
-              (sum, x) =>
-                sum + Number(x.solves || 0),
+            (leaderboard || []).reduce(
+              (sum, row) =>
+                sum +
+                Number(
+                  row.solves || 0
+                ),
               0
-            ),
+            )
+
         };
       }
 
-      // Join requests
+
+      // -----------------------------------------------------
+      // JOIN REQUESTS
+      // -----------------------------------------------------
+
       if (path === "/join") {
+
         const {
           data,
-          error,
+          error
         } = await client
           .from("join_requests")
-          .select("*");
+          .select("*")
+          .order(
+            "created_at",
+            {
+              ascending: false
+            }
+          );
 
-        if (error) throw error;
+
+        if (error) {
+          throw error;
+        }
+
 
         return data || [];
       }
 
-      // Messages
+
+      // -----------------------------------------------------
+      // CONTACT MESSAGES
+      // -----------------------------------------------------
+
       if (path === "/contact") {
+
         const {
           data,
-          error,
+          error
         } = await client
           .from("messages")
-          .select("*");
+          .select("*")
+          .order(
+            "created_at",
+            {
+              ascending: false
+            }
+          );
 
-        if (error) throw error;
+
+        if (error) {
+          throw error;
+        }
+
 
         return data || [];
       }
 
-      // Entities
+
+      // -----------------------------------------------------
+      // NORMAL TABLES
+      // -----------------------------------------------------
+
       const entity = matchEntity(path);
+
 
       if (
         entity &&
         entity.mode !== "item"
       ) {
-        let query = client
-          .from(entity.table)
-          .select("*");
+
+        let query =
+          client
+            .from(entity.table)
+            .select("*");
+
+
+        if (
+          entity.table !== "members" &&
+          entity.table !== "teams"
+        ) {
+
+          query =
+            query.order(
+              "created_at",
+              {
+                ascending: false
+              }
+            );
+
+        }
+
 
         if (
           entity.mode === "public-list"
         ) {
+
           if (
             PUBLISHED_TABLES.has(
               entity.table
             )
           ) {
-            query = query.eq(
-              "published",
-              true
-            );
+
+            query =
+              query.eq(
+                "published",
+                true
+              );
+
           }
+
 
           if (
             APPROVED_TABLES.has(
               entity.table
             )
           ) {
-            query = query.eq(
-              "approved",
-              true
-            );
+
+            query =
+              query.eq(
+                "approved",
+                true
+              );
+
           }
+
         }
 
-        // IMPORTANT:
-        // Do NOT order by created_at.
-        // Your tables don't all have created_at.
+
         const {
           data,
-          error,
+          error
         } = await query;
 
-        if (error) throw error;
+
+        if (error) {
+          throw error;
+        }
+
 
         return fromDbList(
           entity.table,
@@ -651,55 +749,83 @@
         );
       }
 
+
       throw new Error(
         `No Supabase mapping for GET ${path}`
       );
     },
 
-    // -------------------------------------------------------
+
+    // =======================================================
     // POST
-    // -------------------------------------------------------
+    // =======================================================
 
     async post(path, body) {
+
       const client = getClient();
 
-      if (path === "/join") {
-        const { error } =
-          await client
-            .from("join_requests")
-            .insert(
-              cleanPayload(body)
-            );
 
-        if (error) throw error;
+      // -----------------------------------------------------
+      // JOIN
+      // -----------------------------------------------------
+
+      if (path === "/join") {
+
+        const {
+          error
+        } = await client
+          .from("join_requests")
+          .insert(body);
+
+
+        if (error) {
+          throw error;
+        }
+
 
         return {
-          ok: true,
+          ok: true
         };
       }
+
+
+      // -----------------------------------------------------
+      // CONTACT
+      // -----------------------------------------------------
 
       if (path === "/contact") {
-        const { error } =
-          await client
-            .from("messages")
-            .insert(
-              cleanPayload(body)
-            );
 
-        if (error) throw error;
+        const {
+          error
+        } = await client
+          .from("messages")
+          .insert(body);
+
+
+        if (error) {
+          throw error;
+        }
+
 
         return {
-          ok: true,
+          ok: true
         };
       }
 
+
+      // -----------------------------------------------------
+      // CTF FLAG SUBMISSION
+      // -----------------------------------------------------
+
       if (path === "/ctf/submit") {
+
         const {
           data,
-          error,
+          error
         } = await client.rpc(
           "submit_flag",
           {
+
             p_challenge_id:
               body.challengeId,
 
@@ -707,266 +833,390 @@
               body.handle,
 
             p_flag:
-              body.flag,
+              body.flag
+
           }
         );
 
-        if (error) throw error;
+
+        if (error) {
+          throw error;
+        }
+
 
         return {
+
           ok: true,
-          points: data,
+
+          points: data
+
         };
       }
 
-      if (
-        path === "/ctf/challenges"
-      ) {
+
+      // -----------------------------------------------------
+      // CREATE CTF CHALLENGE
+      // -----------------------------------------------------
+
+      if (path === "/ctf/challenges") {
+
         const {
           data,
-          error,
+          error
         } = await client.rpc(
           "admin_create_challenge",
           {
-            p_title: body.title,
+
+            p_title:
+              body.title,
+
             p_description:
               body.description,
+
             p_category:
               body.category,
+
             p_difficulty:
               body.difficulty,
+
             p_points:
               body.points,
+
             p_flag:
               body.flag,
+
             p_published:
-              body.published !== false,
+              body.published !== false
+
           }
         );
 
-        if (error) throw error;
+
+        if (error) {
+          throw error;
+        }
+
 
         return {
-          id: data,
+          id: data
         };
       }
 
+
+      // -----------------------------------------------------
+      // CHANGE PASSWORD
+      // -----------------------------------------------------
+
       if (
-        path === "/auth/change-password"
+        path ===
+        "/auth/change-password"
       ) {
+
         const {
           data: userData,
-          error: userError,
-        } = await client.auth.getUser();
+          error: userError
+        } =
+          await client.auth.getUser();
+
 
         if (
           userError ||
           !userData?.user
         ) {
+
           throw new Error(
             "Not signed in"
           );
+
         }
 
-        const {
-          error: reauthError,
-        } = await client.auth.signInWithPassword(
-          {
-            email:
-              userData.user.email,
 
-            password:
-              body.currentPassword,
-          }
-        );
+        const {
+          error: reauthError
+        } =
+          await client.auth
+            .signInWithPassword({
+
+              email:
+                userData.user.email,
+
+              password:
+                body.currentPassword
+
+            });
+
 
         if (reauthError) {
+
           throw new Error(
             "Current password is incorrect"
           );
+
         }
 
-        const {
-          error,
-        } = await client.auth.updateUser(
-          {
-            password:
-              body.newPassword,
-          }
-        );
 
-        if (error) throw error;
+        const {
+          error
+        } =
+          await client.auth.updateUser({
+
+            password:
+              body.newPassword
+
+          });
+
+
+        if (error) {
+          throw error;
+        }
+
 
         return {
-          ok: true,
+          ok: true
         };
       }
 
-      const entity = matchEntity(path);
+
+      // -----------------------------------------------------
+      // NORMAL TABLE INSERT
+      // -----------------------------------------------------
+
+      const entity =
+        matchEntity(path);
+
 
       if (
         entity &&
         entity.mode === "public-list"
       ) {
-        const safeBody =
-          toDb(
-            entity.table,
-            body
-          );
 
         const {
           data,
-          error,
-        } = await client
-          .from(entity.table)
-          .insert(safeBody)
-          .select()
-          .single();
+          error
+        } =
+          await client
+            .from(entity.table)
+            .insert(
+              toDb(
+                entity.table,
+                body
+              )
+            )
+            .select()
+            .single();
 
-        if (error) throw error;
+
+        if (error) {
+          throw error;
+        }
+
 
         return fromDb(
           entity.table,
           data
         );
       }
+
 
       throw new Error(
         `No Supabase mapping for POST ${path}`
       );
     },
 
-    // -------------------------------------------------------
-    // PUT
-    // -------------------------------------------------------
+
+    // =======================================================
+    // PUT / UPDATE
+    // =======================================================
 
     async put(path, body) {
+
       const client = getClient();
 
-      if (path.startsWith("/join/")) {
+
+      // -----------------------------------------------------
+      // JOIN REQUEST
+      // -----------------------------------------------------
+
+      if (
+        path.startsWith("/join/")
+      ) {
+
         const id =
           path.split("/")[2];
+
 
         if (
           body?.status === "approved"
         ) {
-          const {
-            error,
-          } = await client.rpc(
-            "admin_approve_join_request",
-            {
-              p_id: id,
-            }
-          );
 
-          if (error) throw error;
+          const {
+            error
+          } =
+            await client.rpc(
+              "admin_approve_join_request",
+              {
+                p_id: id
+              }
+            );
+
+
+          if (error) {
+            throw error;
+          }
+
         } else {
-          const {
-            error,
-          } = await client
-            .from("join_requests")
-            .update(
-              cleanPayload(body)
-            )
-            .eq("id", id);
 
-          if (error) throw error;
+          const {
+            error
+          } =
+            await client
+              .from("join_requests")
+              .update(body)
+              .eq("id", id);
+
+
+          if (error) {
+            throw error;
+          }
+
         }
 
+
         return {
-          ok: true,
+          ok: true
         };
       }
+
+
+      // -----------------------------------------------------
+      // CONTACT MESSAGE
+      // -----------------------------------------------------
 
       if (
         path.startsWith("/contact/")
       ) {
+
         const id =
           path.split("/")[2];
 
-        const {
-          error,
-        } = await client
-          .from("messages")
-          .update(
-            cleanPayload(body)
-          )
-          .eq("id", id);
 
-        if (error) throw error;
+        const {
+          error
+        } =
+          await client
+            .from("messages")
+            .update(body)
+            .eq("id", id);
+
+
+        if (error) {
+          throw error;
+        }
+
 
         return {
-          ok: true,
+          ok: true
         };
       }
+
+
+      // -----------------------------------------------------
+      // UPDATE CTF CHALLENGE
+      // -----------------------------------------------------
 
       if (
         path.startsWith(
           "/ctf/challenges/"
         )
       ) {
+
         const id =
           path.split("/")[3];
 
-        const {
-          error,
-        } = await client.rpc(
-          "admin_update_challenge",
-          {
-            p_id: id,
-            p_title: body.title,
-            p_description:
-              body.description,
-            p_category:
-              body.category,
-            p_difficulty:
-              body.difficulty,
-            p_points:
-              body.points,
-            p_flag:
-              body.flag || null,
-            p_published:
-              body.published !== false,
-          }
-        );
 
-        if (error) throw error;
+        const {
+          error
+        } =
+          await client.rpc(
+            "admin_update_challenge",
+            {
+
+              p_id:
+                id,
+
+              p_title:
+                body.title,
+
+              p_description:
+                body.description,
+
+              p_category:
+                body.category,
+
+              p_difficulty:
+                body.difficulty,
+
+              p_points:
+                body.points,
+
+              p_flag:
+                body.flag || null,
+
+              p_published:
+                body.published !== false
+
+            }
+          );
+
+
+        if (error) {
+          throw error;
+        }
+
 
         return {
-          ok: true,
+          ok: true
         };
       }
 
+
+      // -----------------------------------------------------
+      // NORMAL TABLE UPDATE
+      // -----------------------------------------------------
+
       const entity =
         matchEntity(path);
+
 
       if (
         entity &&
         entity.mode === "item"
       ) {
-        const safeBody =
-          toDb(
-            entity.table,
-            body
-          );
-
-        // NEVER update id.
-        delete safeBody.id;
 
         const {
           data,
-          error,
-        } = await client
-          .from(entity.table)
-          .update(safeBody)
-          .eq(
-            "id",
-            entity.id
-          )
-          .select()
-          .single();
+          error
+        } =
+          await client
+            .from(entity.table)
+            .update(
+              toDb(
+                entity.table,
+                body
+              )
+            )
+            .eq(
+              "id",
+              entity.id
+            )
+            .select()
+            .single();
 
-        if (error) throw error;
+
+        if (error) {
+          throw error;
+        }
+
 
         return fromDb(
           entity.table,
@@ -974,105 +1224,170 @@
         );
       }
 
+
       throw new Error(
         `No Supabase mapping for PUT ${path}`
       );
     },
 
-    // -------------------------------------------------------
+
+    // =======================================================
     // DELETE
-    // -------------------------------------------------------
+    // =======================================================
 
     async del(path, id) {
+
       const client = getClient();
+
+
+      // -----------------------------------------------------
+      // DELETE JOIN REQUEST
+      // -----------------------------------------------------
 
       if (
         path.startsWith("/join/")
       ) {
+
         const rowId =
           path.split("/")[2];
 
-        const {
-          error,
-        } = await client
-          .from("join_requests")
-          .delete()
-          .eq("id", rowId);
 
-        if (error) throw error;
+        const {
+          error
+        } =
+          await client
+            .from("join_requests")
+            .delete()
+            .eq(
+              "id",
+              rowId
+            );
+
+
+        if (error) {
+          throw error;
+        }
+
 
         return null;
       }
+
+
+      // -----------------------------------------------------
+      // DELETE CONTACT MESSAGE
+      // -----------------------------------------------------
 
       if (
         path.startsWith("/contact/")
       ) {
+
         const rowId =
           path.split("/")[2];
 
-        const {
-          error,
-        } = await client
-          .from("messages")
-          .delete()
-          .eq("id", rowId);
 
-        if (error) throw error;
+        const {
+          error
+        } =
+          await client
+            .from("messages")
+            .delete()
+            .eq(
+              "id",
+              rowId
+            );
+
+
+        if (error) {
+          throw error;
+        }
+
 
         return null;
       }
+
+
+      // -----------------------------------------------------
+      // DELETE CTF CHALLENGE
+      // -----------------------------------------------------
 
       if (
         path.startsWith(
           "/ctf/challenges/"
         )
       ) {
+
         const rowId =
           path.split("/")[3];
 
-        const {
-          error,
-        } = await client
-          .from("challenges")
-          .delete()
-          .eq("id", rowId);
 
-        if (error) throw error;
+        const {
+          error
+        } =
+          await client
+            .from("challenges")
+            .delete()
+            .eq(
+              "id",
+              rowId
+            );
+
+
+        if (error) {
+          throw error;
+        }
+
 
         return null;
       }
 
+
+      // -----------------------------------------------------
+      // DELETE NORMAL ENTITY
+      // -----------------------------------------------------
+
       const entity =
         matchEntity(path);
 
+
       const rowId =
-        id || entity?.id;
+        id ||
+        entity?.id;
+
 
       if (
         entity &&
         entity.mode === "item" &&
         rowId
       ) {
-        const {
-          error,
-        } = await client
-          .from(entity.table)
-          .delete()
-          .eq(
-            "id",
-            rowId
-          );
 
-        if (error) throw error;
+        const {
+          error
+        } =
+          await client
+            .from(entity.table)
+            .delete()
+            .eq(
+              "id",
+              rowId
+            );
+
+
+        if (error) {
+          throw error;
+        }
+
 
         return null;
       }
 
+
       throw new Error(
         `No Supabase mapping for DELETE ${path}`
       );
-    },
+    }
+
   };
+
 
   // =========================================================
   // GLOBALS
@@ -1083,15 +1398,18 @@
   window.supabaseClient =
     window.supabaseClient || null;
 
-  window.SUPABASE_URL =
-    SUPABASE_URL;
+  window.API_TABLES =
+    API_TABLES;
 
-  window.SUPABASE_STORAGE_BUCKET =
-    STORAGE_BUCKET;
+
+  // =========================================================
+  // HTML ESCAPE HELPER
+  // =========================================================
 
   window.esc =
     window.esc ||
     function (value) {
+
       if (
         value === null ||
         value === undefined
@@ -1099,41 +1417,61 @@
         return "";
       }
 
+
       return String(value)
+
         .replace(
           /&/g,
           "&amp;"
         )
+
         .replace(
           /</g,
           "&lt;"
         )
+
         .replace(
           />/g,
           "&gt;"
         )
+
         .replace(
           /"/g,
           "&quot;"
         )
+
         .replace(
           /'/g,
           "&#039;"
         );
+
     };
 
+
+  // =========================================================
+  // INITIALIZE IF SUPABASE IS ALREADY LOADED
+  // =========================================================
+
   if (window.supabase) {
+
     try {
+
       getClient();
+
     } catch (error) {
+
       console.error(
         "DragonByte Supabase initialization failed:",
         error
       );
+
     }
+
   }
+
 
   console.log(
     "DragonByte API ready!"
   );
+
 })();
