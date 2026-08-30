@@ -1,535 +1,606 @@
 /* =========================================================
-   DragonByte Admin Dashboard
+   DragonByte Admin Panel
    ========================================================= */
 
 "use strict";
+
+/* =========================================================
+   SUPABASE STORAGE
+   ========================================================= */
+
+const MEDIA_BUCKET = "dragonbyte-media";
+
+/*
+  Use the same Supabase client created by api.js.
+*/
+function getSupabaseClient() {
+
+  if (window.supabaseClient) {
+    return window.supabaseClient;
+  }
+
+  if (
+    !window.supabase ||
+    typeof window.supabase.createClient !== "function"
+  ) {
+    throw new Error(
+      "Supabase library is not loaded."
+    );
+  }
+
+  const SUPABASE_URL =
+    "https://lfwwslohugqojibcpkys.supabase.co";
+
+  const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_4OBUm9wgJwRAqN9hi8QLOw_5WYgQcUG";
+
+  window.supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+  return window.supabaseClient;
+}
+
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function esc(value) {
+
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+function safeArray(value) {
+
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (!value) {
+    return [];
+  }
+
+  return String(value)
+    .split(",")
+    .map(v => v.trim())
+    .filter(Boolean);
+}
+
+
+function valueForField(record, key) {
+
+  if (!record) {
+    return "";
+  }
+
+  const value = record[key];
+
+  if (Array.isArray(value)) {
+    return value.join(", ");
+  }
+
+  return value ?? "";
+}
+
 
 /* =========================================================
    ADMIN SECTIONS
    ========================================================= */
 
 const ADMIN_SECTIONS = [
+
   {
     id: "dashboard",
     label: "Dashboard",
-    icon: "📊",
+    icon: "📊"
   },
+
   {
     id: "members",
     label: "Members",
-    icon: "👥",
+    icon: "👥"
   },
+
   {
     id: "contributors",
     label: "Contributors",
-    icon: "⭐",
+    icon: "⭐"
   },
+
   {
     id: "events",
     label: "Events",
-    icon: "📅",
+    icon: "📅"
   },
+
   {
     id: "projects",
     label: "Projects",
-    icon: "🔧",
+    icon: "🔧"
   },
+
   {
     id: "teams",
     label: "Teams",
-    icon: "🛡️",
+    icon: "🛡️"
   },
+
   {
     id: "challenges",
     label: "CTF Challenges",
-    icon: "🚩",
+    icon: "🚩"
   },
+
   {
     id: "join-requests",
     label: "Join Requests",
-    icon: "📨",
+    icon: "📨"
   },
+
   {
     id: "messages",
     label: "Messages",
-    icon: "✉️",
+    icon: "✉️"
   },
+
   {
     id: "testimonials",
     label: "Testimonials",
-    icon: "💬",
+    icon: "💬"
   },
+
   {
     id: "settings",
     label: "Settings",
-    icon: "⚙️",
-  },
+    icon: "⚙️"
+  }
+
 ];
+
 
 let activeSection = "dashboard";
 
-/* =========================================================
-   HELPERS
-   ========================================================= */
-
-function getEl(id) {
-  return document.getElementById(id);
-}
-
-function showErrorElement(element, message) {
-  if (!element) return;
-
-  if (!message) {
-    element.innerHTML = "";
-    return;
-  }
-
-  element.innerHTML = `
-    <div
-      class="form-error mb-3"
-      style="
-        background:#fef2f2;
-        padding:12px 16px;
-        border-radius:10px;
-      "
-    >
-      ${esc(message)}
-    </div>
-  `;
-}
 
 /* =========================================================
-   AUTH SCREEN
+   AUTH
    ========================================================= */
 
 function showAdminShell() {
-  const login =
-    getEl("login-screen");
 
-  const shell =
-    getEl("admin-shell");
+  document
+    .getElementById("login-screen")
+    .classList
+    .add("hidden");
 
-  if (login) {
-    login.classList.add("hidden");
-  }
-
-  if (shell) {
-    shell.classList.remove("hidden");
-  }
+  document
+    .getElementById("admin-shell")
+    .classList
+    .remove("hidden");
 
   renderSidebar();
+
   goToSection("dashboard");
 }
 
+
 function showLoginScreen() {
-  const login =
-    getEl("login-screen");
 
-  const shell =
-    getEl("admin-shell");
+  document
+    .getElementById("admin-shell")
+    .classList
+    .add("hidden");
 
-  if (shell) {
-    shell.classList.add("hidden");
-  }
-
-  if (login) {
-    login.classList.remove("hidden");
-  }
+  document
+    .getElementById("login-screen")
+    .classList
+    .remove("hidden");
 }
+
 
 /* =========================================================
    LOGIN
    ========================================================= */
 
-function setupLogin() {
-  const form =
-    getEl("login-form");
-
-  if (!form) return;
-
-  form.addEventListener(
+document
+  .getElementById("login-form")
+  .addEventListener(
     "submit",
-    async (event) => {
+    async function (event) {
+
       event.preventDefault();
 
-      const email =
-        getEl("login-username")?.value
-          ?.trim();
-
-      const password =
-        getEl("login-password")?.value;
-
       const button =
-        getEl("login-submit");
+        document.getElementById("login-submit");
 
-      const error =
-        getEl("login-error");
+      const errorElement =
+        document.getElementById("login-error");
 
-      if (error) {
-        error.classList.add(
-          "hidden"
-        );
-      }
+      errorElement.classList.add("hidden");
 
-      if (button) {
-        button.disabled = true;
-        button.textContent =
-          "Signing in…";
-      }
+      button.disabled = true;
+      button.textContent = "Signing in…";
 
       try {
+
+        const email =
+          document
+            .getElementById("login-username")
+            .value
+            .trim();
+
+        const password =
+          document
+            .getElementById("login-password")
+            .value;
+
         await Api.login(
           email,
           password
         );
 
         showAdminShell();
-      } catch (err) {
-        if (error) {
-          error.textContent =
-            err?.message ||
-            "Invalid credentials";
 
-          error.classList.remove(
-            "hidden"
-          );
-        }
+      } catch (error) {
+
+        errorElement.textContent =
+          error?.message ||
+          "Invalid credentials.";
+
+        errorElement.classList.remove("hidden");
+
       } finally {
-        if (button) {
-          button.disabled = false;
-          button.textContent =
-            "Sign In";
-        }
+
+        button.disabled = false;
+        button.textContent = "Sign In";
+
       }
+
     }
   );
-}
+
 
 /* =========================================================
    LOGOUT
    ========================================================= */
 
-function setupLogout() {
-  const button =
-    getEl("logout-btn");
-
-  if (!button) return;
-
-  button.addEventListener(
+document
+  .getElementById("logout-btn")
+  .addEventListener(
     "click",
-    async () => {
+    async function () {
+
       try {
+
         await Api.logout();
+
       } catch (error) {
-        console.error(
-          "Logout error:",
-          error
-        );
+
+        console.error(error);
+
       } finally {
+
         showLoginScreen();
+
       }
+
     }
   );
-}
+
 
 /* =========================================================
    SIDEBAR
    ========================================================= */
 
 function renderSidebar() {
-  const nav =
-    getEl("admin-nav");
 
-  if (!nav) return;
+  const navigation =
+    document.getElementById("admin-nav");
 
-  nav.innerHTML =
-    ADMIN_SECTIONS.map(
-      (section) => `
-        <button
-          class="
-            admin-nav-item
-            ${
-              section.id ===
-              activeSection
+  navigation.innerHTML =
+    ADMIN_SECTIONS
+      .map(section => {
+
+        return `
+          <button
+            class="admin-nav-item ${
+              section.id === activeSection
                 ? "active"
                 : ""
-            }
-          "
-          data-section="${section.id}"
-          type="button"
-        >
-          <span>
-            ${section.icon}
-          </span>
+            }"
+            data-section="${esc(section.id)}"
+          >
+            <span>${section.icon}</span>
+            <span>${esc(section.label)}</span>
+          </button>
+        `;
 
-          ${section.label}
-        </button>
-      `
-    ).join("");
+      })
+      .join("");
 
-  nav
-    .querySelectorAll(
-      "button[data-section]"
-    )
-    .forEach((button) => {
+
+  navigation
+    .querySelectorAll("button")
+    .forEach(button => {
+
       button.addEventListener(
         "click",
-        () => {
+        function () {
+
           goToSection(
             button.dataset.section
           );
+
         }
       );
+
     });
+
 }
 
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
 
 function goToSection(id) {
-  const section =
-    ADMIN_SECTIONS.find(
-      (item) =>
-        item.id === id
-    );
-
-  if (!section) {
-    return;
-  }
 
   activeSection = id;
 
   renderSidebar();
 
-  const title =
-    getEl("section-title");
+  const section =
+    ADMIN_SECTIONS.find(
+      item => item.id === id
+    );
 
-  if (title) {
-    title.textContent =
-      section.label;
-  }
+  document
+    .getElementById("section-title")
+    .textContent =
+      section
+        ? section.label
+        : "Admin";
 
   renderSection(id);
+
 }
+
 
 function renderSection(id) {
-  const container =
-    getEl("section-content");
 
-  if (!container) return;
+  const element =
+    document.getElementById(
+      "section-content"
+    );
 
-  container.innerHTML = "";
+  element.innerHTML = "";
 
-  switch (id) {
-    case "dashboard":
-      renderDashboard(
-        container
-      );
-      break;
-
-    case "members":
-      renderEntityManager(
-        container,
-        entityConfigs.members
-      );
-      break;
-
-    case "contributors":
-      renderEntityManager(
-        container,
-        entityConfigs.contributors
-      );
-      break;
-
-    case "events":
-      renderEntityManager(
-        container,
-        entityConfigs.events
-      );
-      break;
-
-    case "projects":
-      renderEntityManager(
-        container,
-        entityConfigs.projects
-      );
-      break;
-
-    case "teams":
-      renderEntityManager(
-        container,
-        entityConfigs.teams
-      );
-      break;
-
-    case "testimonials":
-      renderEntityManager(
-        container,
-        entityConfigs.testimonials
-      );
-      break;
-
-    case "challenges":
-      renderChallengesPanel(
-        container
-      );
-      break;
-
-    case "join-requests":
-      renderJoinRequestsPanel(
-        container
-      );
-      break;
-
-    case "messages":
-      renderMessagesPanel(
-        container
-      );
-      break;
-
-    case "settings":
-      renderSettingsPanel(
-        container
-      );
-      break;
-
-    default:
-      container.innerHTML = `
-        <div class="empty-state">
-          Unknown section.
-        </div>
-      `;
+  if (id === "dashboard") {
+    return renderDashboard(element);
   }
+
+  if (id === "members") {
+    return renderEntityManager(
+      element,
+      entityConfigs.members
+    );
+  }
+
+  if (id === "contributors") {
+    return renderEntityManager(
+      element,
+      entityConfigs.contributors
+    );
+  }
+
+  if (id === "events") {
+    return renderEntityManager(
+      element,
+      entityConfigs.events
+    );
+  }
+
+  if (id === "projects") {
+    return renderEntityManager(
+      element,
+      entityConfigs.projects
+    );
+  }
+
+  if (id === "teams") {
+    return renderEntityManager(
+      element,
+      entityConfigs.teams
+    );
+  }
+
+  if (id === "testimonials") {
+    return renderEntityManager(
+      element,
+      entityConfigs.testimonials
+    );
+  }
+
+  if (id === "challenges") {
+    return renderChallengesPanel(element);
+  }
+
+  if (id === "join-requests") {
+    return renderJoinRequestsPanel(element);
+  }
+
+  if (id === "messages") {
+    return renderMessagesPanel(element);
+  }
+
+  if (id === "settings") {
+    return renderSettingsPanel(element);
+  }
+
 }
+
 
 /* =========================================================
    DASHBOARD
    ========================================================= */
 
 const STAT_META = [
+
   {
     key: "members",
     label: "Members",
-    icon: "👥",
+    icon: "👥"
   },
+
   {
     key: "events",
     label: "Events",
-    icon: "📅",
+    icon: "📅"
   },
+
   {
     key: "projects",
     label: "Projects",
-    icon: "🔧",
+    icon: "🔧"
   },
+
   {
     key: "joinRequests",
     label: "Pending Join Requests",
-    icon: "📨",
+    icon: "📨"
   },
+
   {
     key: "messages",
     label: "Unread Messages",
-    icon: "✉️",
+    icon: "✉️"
   },
+
   {
     key: "testimonials",
     label: "Testimonials",
-    icon: "💬",
+    icon: "💬"
   },
+
   {
     key: "challenges",
     label: "CTF Challenges",
-    icon: "🚩",
+    icon: "🚩"
   },
+
   {
     key: "ctfSolves",
     label: "Total CTF Solves",
-    icon: "✅",
-  },
+    icon: "✅"
+  }
+
 ];
 
-async function renderDashboard(
-  container
-) {
-  container.innerHTML = `
-    <div
-      class="grid grid-3"
-      id="stat-grid"
-    >
-      ${STAT_META.map(
-        (stat) => `
-          <div class="stat-card">
-            <div class="top">
-              <span>
-                ${stat.icon}
-              </span>
 
-              <span
-                class="value"
-                id="stat-${stat.key}"
-              >
-                …
-              </span>
-            </div>
+async function renderDashboard(element) {
 
-            <div
-              class="text-sm"
-              style="
-                font-weight:500;
-                color:#475569;
-              "
-            >
-              ${stat.label}
+  element.innerHTML = `
+
+    <div class="grid grid-3">
+
+      ${STAT_META
+        .map(stat => {
+
+          return `
+            <div class="stat-card">
+
+              <div class="top">
+
+                <span>
+                  ${stat.icon}
+                </span>
+
+                <span
+                  class="value"
+                  id="stat-${esc(stat.key)}"
+                >
+                  …
+                </span>
+
+              </div>
+
+              <div class="text-sm">
+                ${esc(stat.label)}
+              </div>
+
             </div>
-          </div>
-        `
-      ).join("")}
+          `;
+
+        })
+        .join("")}
+
     </div>
   `;
 
+
   try {
+
     const stats =
       await Api.get(
         "/admin/stats"
       );
 
-    STAT_META.forEach(
-      (stat) => {
-        const element =
-          getEl(
-            `stat-${stat.key}`
-          );
 
-        if (element) {
-          element.textContent =
-            stats?.[stat.key] ??
-            0;
-        }
+    STAT_META.forEach(stat => {
+
+      const node =
+        document.getElementById(
+          `stat-${stat.key}`
+        );
+
+      if (node) {
+
+        node.textContent =
+          stats?.[stat.key] ?? 0;
+
       }
-    );
+
+    });
+
   } catch (error) {
-    container.insertAdjacentHTML(
+
+    element.insertAdjacentHTML(
       "afterbegin",
       `
         <div class="form-error mb-4">
           ${esc(
             error?.message ||
-              "Failed to load dashboard"
+            "Unable to load dashboard."
           )}
         </div>
       `
     );
+
   }
+
 }
+
 
 /* =========================================================
    ENTITY CONFIGURATION
    ========================================================= */
 
 const entityConfigs = {
+
+  /* -------------------------------------------------------
+     MEMBERS
+     ------------------------------------------------------- */
+
   members: {
+
     title: "Member",
 
     apiBase: "/members",
@@ -538,95 +609,147 @@ const entityConfigs = {
       "name",
       "email",
       "username",
+      "linkedin"
     ],
 
     fields: [
+
       {
         key: "name",
-        label: "Name",
+        label: "Full Name",
         type: "text",
+        required: true
       },
+
       {
         key: "email",
         label: "Email",
-        type: "text",
+        type: "email"
       },
+
       {
         key: "username",
         label: "Username",
-        type: "text",
+        type: "text"
       },
+
       {
         key: "skills",
         label: "Skills",
         type: "text",
+        placeholder: "Web Security, OSINT, CTF"
       },
-    ],
+
+      {
+        key: "linkedin",
+        label: "LinkedIn URL",
+        type: "url",
+        placeholder: "https://linkedin.com/in/username"
+      },
+
+      {
+        key: "github",
+        label: "GitHub URL",
+        type: "url",
+        placeholder: "https://github.com/username"
+      },
+
+      {
+        key: "photo",
+        label: "Profile Photo",
+        type: "file",
+        uploadType: "profile"
+      }
+
+    ]
+
   },
 
+
+  /* -------------------------------------------------------
+     CONTRIBUTORS
+     ------------------------------------------------------- */
+
   contributors: {
+
     title: "Contributor",
 
-    apiBase:
-      "/contributors",
+    apiBase: "/contributors",
 
     columns: [
       "name",
       "role",
-      "featured",
+      "github",
+      "linkedin",
+      "featured"
     ],
 
     fields: [
+
       {
         key: "name",
-        label: "Name",
+        label: "Full Name",
         type: "text",
+        required: true
       },
+
       {
         key: "role",
         label: "Role",
-        type: "text",
+        type: "text"
       },
+
       {
         key: "bio",
         label: "Bio",
-        type: "textarea",
+        type: "textarea"
       },
+
       {
         key: "photo",
-        label: "Photo URL",
-        type: "text",
+        label: "Profile Photo",
+        type: "file",
+        uploadType: "profile"
       },
-      {
-        key: "coverPhoto",
-        label: "Cover Photo URL",
-        type: "text",
-      },
+
       {
         key: "skills",
         label: "Skills",
         type: "tags",
+        placeholder: "Web Security, Forensics, OSINT"
       },
+
       {
         key: "github",
         label: "GitHub URL",
-        type: "text",
+        type: "url",
+        placeholder: "https://github.com/username"
       },
+
       {
         key: "linkedin",
         label: "LinkedIn URL",
-        type: "text",
+        type: "url",
+        placeholder: "https://linkedin.com/in/username"
       },
+
       {
         key: "featured",
-        label:
-          "Featured on homepage",
-        type: "checkbox",
-      },
-    ],
+        label: "Featured on homepage",
+        type: "checkbox"
+      }
+
+    ]
+
   },
 
+
+  /* -------------------------------------------------------
+     EVENTS
+     ------------------------------------------------------- */
+
   events: {
+
     title: "Event",
 
     apiBase: "/events",
@@ -635,78 +758,92 @@ const entityConfigs = {
       "title",
       "date",
       "location",
-      "published",
+      "published"
     ],
 
     fields: [
+
       {
         key: "title",
         label: "Title",
         type: "text",
+        required: true
       },
+
       {
         key: "description",
         label: "Description",
-        type: "textarea",
+        type: "textarea"
       },
+
       {
         key: "date",
         label: "Date",
-        type: "text",
-        placeholder:
-          "2026-12-01",
+        type: "date"
       },
+
       {
         key: "time",
         label: "Time",
         type: "text",
-        placeholder:
-          "10:00 AM",
+        placeholder: "10:00 AM"
       },
+
       {
         key: "location",
         label: "Location",
-        type: "text",
+        type: "text"
       },
+
       {
         key: "category",
         label: "Category",
-        type: "text",
+        type: "text"
       },
+
       {
         key: "image",
-        label: "Event Photo URL",
-        type: "text",
+        label: "Event Photo",
+        type: "file",
+        uploadType: "event"
       },
+
       {
         key: "coverPhoto",
-        label:
-          "Event Cover Photo URL",
-        type: "text",
+        label: "Event Cover Photo",
+        type: "file",
+        uploadType: "cover"
       },
+
       {
-        key:
-          "registrationUrl",
-        label:
-          "Registration URL",
-        type: "text",
+        key: "registrationUrl",
+        label: "Registration URL",
+        type: "url"
       },
+
       {
         key: "featured",
-        label:
-          "Featured on homepage",
-        type: "checkbox",
+        label: "Featured on homepage",
+        type: "checkbox"
       },
+
       {
         key: "published",
-        label:
-          "Published (visible to visitors)",
-        type: "checkbox",
-      },
-    ],
+        label: "Published",
+        type: "checkbox"
+      }
+
+    ]
+
   },
 
+
+  /* -------------------------------------------------------
+     PROJECTS
+     ------------------------------------------------------- */
+
   projects: {
+
     title: "Project",
 
     apiBase: "/projects",
@@ -714,78 +851,99 @@ const entityConfigs = {
     columns: [
       "name",
       "category",
-      "published",
+      "published"
     ],
 
     fields: [
+
       {
         key: "name",
-        label: "Name",
+        label: "Project Name",
         type: "text",
+        required: true
       },
+
       {
         key: "description",
         label: "Description",
-        type: "textarea",
+        type: "textarea"
       },
+
       {
         key: "image",
-        label: "Project Photo URL",
-        type: "text",
+        label: "Project Photo",
+        type: "file",
+        uploadType: "project"
       },
+
       {
         key: "coverPhoto",
-        label:
-          "Project Cover Photo URL",
-        type: "text",
+        label: "Project Cover Photo",
+        type: "file",
+        uploadType: "cover"
       },
+
       {
         key: "githubUrl",
         label: "GitHub URL",
-        type: "text",
+        type: "url"
       },
+
       {
         key: "demoUrl",
         label: "Demo URL",
-        type: "text",
+        type: "url"
       },
+
       {
         key: "resourceUrl",
-        label:
-          "Resource Link",
-        type: "text",
+        label: "Resource URL",
+        type: "url"
       },
+
       {
         key: "technologies",
         label: "Technologies",
         type: "tags",
+        placeholder: "HTML, JavaScript, Supabase"
       },
+
       {
         key: "contributors",
         label: "Contributors",
         type: "tags",
+        placeholder: "Sanjai, Aravind"
       },
+
       {
         key: "category",
         label: "Category",
-        type: "text",
+        type: "text"
       },
+
       {
         key: "featured",
-        label:
-          "Featured on homepage",
-        type: "checkbox",
+        label: "Featured on homepage",
+        type: "checkbox"
       },
+
       {
         key: "published",
-        label:
-          "Published (visible to visitors)",
-        type: "checkbox",
-      },
-    ],
+        label: "Published",
+        type: "checkbox"
+      }
+
+    ]
+
   },
 
+
+  /* -------------------------------------------------------
+     TEAMS
+     ------------------------------------------------------- */
+
   teams: {
+
     title: "Team",
 
     apiBase: "/teams",
@@ -793,91 +951,228 @@ const entityConfigs = {
     columns: [
       "name",
       "category",
-      "membersCount",
+      "membersCount"
     ],
 
     fields: [
+
       {
         key: "name",
-        label: "Name",
+        label: "Team Name",
         type: "text",
+        required: true
       },
+
       {
         key: "description",
         label: "Description",
-        type: "textarea",
+        type: "textarea"
       },
+
       {
         key: "category",
         label: "Category",
-        type: "text",
+        type: "text"
       },
+
       {
         key: "logoUrl",
         label: "Logo URL",
-        type: "text",
+        type: "url"
       },
+
       {
         key: "githubUrl",
         label: "GitHub URL",
-        type: "text",
+        type: "url"
       },
+
       {
         key: "websiteUrl",
         label: "Website URL",
-        type: "text",
+        type: "url"
       },
+
       {
         key: "membersCount",
-        label:
-          "Members Count",
-        type: "number",
-      },
-    ],
+        label: "Members Count",
+        type: "number"
+      }
+
+    ]
+
   },
 
+
+  /* -------------------------------------------------------
+     TESTIMONIALS
+     ------------------------------------------------------- */
+
   testimonials: {
+
     title: "Testimonial",
 
-    apiBase:
-      "/testimonials",
+    apiBase: "/testimonials",
 
     columns: [
       "name",
       "role",
-      "approved",
+      "approved"
     ],
 
     fields: [
+
       {
         key: "quote",
         label: "Quote",
         type: "textarea",
+        required: true
       },
+
       {
         key: "name",
         label: "Name",
-        type: "text",
+        type: "text"
       },
+
       {
         key: "role",
         label: "Role",
-        type: "text",
+        type: "text"
       },
+
       {
         key: "photo",
-        label: "Photo URL",
-        type: "text",
+        label: "Photo",
+        type: "file",
+        uploadType: "profile"
       },
+
       {
         key: "approved",
-        label:
-          "Approved (visible to visitors)",
-        type: "checkbox",
-      },
-    ],
-  },
+        label: "Approved",
+        type: "checkbox"
+      }
+
+    ]
+
+  }
+
 };
+
+
+/* =========================================================
+   IMAGE UPLOAD
+   ========================================================= */
+
+async function uploadImage(
+  file,
+  folder
+) {
+
+  if (!file) {
+    return null;
+  }
+
+
+  if (!file.type.startsWith("image/")) {
+
+    throw new Error(
+      "Please select an image file."
+    );
+
+  }
+
+
+  const maxSize =
+    8 * 1024 * 1024;
+
+  if (file.size > maxSize) {
+
+    throw new Error(
+      "Image must be smaller than 8MB."
+    );
+
+  }
+
+
+  const supabase =
+    getSupabaseClient();
+
+
+  const extension =
+    file.name
+      .split(".")
+      .pop()
+      .toLowerCase();
+
+
+  const randomPart =
+    Math.random()
+      .toString(36)
+      .slice(2);
+
+
+  const timestamp =
+    Date.now();
+
+
+  const fileName =
+    `${timestamp}-${randomPart}.${extension}`;
+
+
+  const path =
+    `${folder}/${fileName}`;
+
+
+  const {
+    error
+  } =
+    await supabase
+      .storage
+      .from(MEDIA_BUCKET)
+      .upload(
+        path,
+        file,
+        {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type
+        }
+      );
+
+
+  if (error) {
+
+    throw new Error(
+      `Image upload failed: ${error.message}`
+    );
+
+  }
+
+
+  const {
+    data
+  } =
+    supabase
+      .storage
+      .from(MEDIA_BUCKET)
+      .getPublicUrl(path);
+
+
+  if (!data?.publicUrl) {
+
+    throw new Error(
+      "Image uploaded but public URL could not be generated."
+    );
+
+  }
+
+
+  return data.publicUrl;
+
+}
+
 
 /* =========================================================
    FIELD HTML
@@ -885,2006 +1180,1774 @@ const entityConfigs = {
 
 function fieldInputHtml(
   field,
-  value
+  value,
+  record = null
 ) {
-  const current =
-    value ??
-    (field.type ===
-    "checkbox"
-      ? false
-      : "");
 
-  if (
-    field.type ===
-    "checkbox"
-  ) {
+  const currentValue =
+    valueForField(
+      record || {},
+      field.key
+    );
+
+
+  /* -------------------------------------------------------
+     CHECKBOX
+     ------------------------------------------------------- */
+
+  if (field.type === "checkbox") {
+
     return `
-      <label
-        class="field-check mt-2"
-      >
+      <label class="field-check">
+
         <input
           type="checkbox"
-          data-field="${field.key}"
-          ${
-            current
-              ? "checked"
-              : ""
-          }
-        />
+          data-field="${esc(field.key)}"
+          ${record?.[field.key] ? "checked" : ""}
+        >
 
-        <span class="text-sm">
+        <span>
           Yes
         </span>
+
       </label>
     `;
+
   }
 
-  if (
-    field.type ===
-    "textarea"
-  ) {
+
+  /* -------------------------------------------------------
+     FILE
+     ------------------------------------------------------- */
+
+  if (field.type === "file") {
+
+    const previewClass =
+      field.uploadType === "profile"
+        ? "image-preview profile-preview"
+        : "image-preview";
+
+
+    return `
+      <div class="upload-box">
+
+        <input
+          type="file"
+          data-file-field="${esc(field.key)}"
+          accept="image/*"
+        >
+
+        <div class="upload-help">
+          ${field.uploadType === "profile"
+            ? "Upload profile photo. JPG, PNG, WEBP."
+            : "Upload image. JPG, PNG, WEBP. Maximum 8MB."
+          }
+        </div>
+
+        ${
+          currentValue
+            ? `
+              <img
+                class="${previewClass}"
+                data-preview-for="${esc(field.key)}"
+                src="${esc(currentValue)}"
+                alt="Current image"
+              >
+            `
+            : `
+              <img
+                class="${previewClass} hidden"
+                data-preview-for="${esc(field.key)}"
+                alt="Preview"
+              >
+            `
+        }
+
+        <div
+          class="upload-progress"
+          data-upload-status="${esc(field.key)}"
+        ></div>
+
+      </div>
+    `;
+
+  }
+
+
+  /* -------------------------------------------------------
+     TEXTAREA
+     ------------------------------------------------------- */
+
+  if (field.type === "textarea") {
+
     return `
       <textarea
-        data-field="${field.key}"
-        rows="3"
-        placeholder="${esc(
-          field.placeholder ||
-            ""
-        )}"
-      >${esc(current)}</textarea>
+        data-field="${esc(field.key)}"
+        placeholder="${esc(field.placeholder || "")}"
+      >${esc(currentValue)}</textarea>
     `;
+
   }
 
-  let displayValue =
-    current;
+
+  /* -------------------------------------------------------
+     URL / EMAIL / DATE / NUMBER
+     ------------------------------------------------------- */
+
+  let inputType = "text";
 
   if (
-    field.type ===
-      "tags" &&
-    Array.isArray(current)
+    field.type === "url" ||
+    field.type === "email" ||
+    field.type === "date" ||
+    field.type === "number"
   ) {
-    displayValue =
-      current.join(", ");
+    inputType = field.type;
   }
 
-  const type =
-    field.type ===
-    "number"
-      ? "number"
-      : "text";
-
-  const placeholder =
-    field.placeholder ||
-    (field.type ===
-    "tags"
-      ? "comma, separated, values"
-      : "");
 
   return `
     <input
-      type="${type}"
-      data-field="${field.key}"
-      value="${esc(
-        displayValue
-      )}"
+      type="${inputType}"
+      data-field="${esc(field.key)}"
+      value="${esc(currentValue)}"
       placeholder="${esc(
-        placeholder
+        field.placeholder ||
+        ""
       )}"
-    />
+      ${field.required ? "required" : ""}
+    >
   `;
+
 }
 
+
 /* =========================================================
-   GENERIC ENTITY MANAGER
+   ENTITY MANAGER
    ========================================================= */
 
-function renderEntityManager(
+async function renderEntityManager(
   container,
   config
 ) {
+
   let rows = [];
-  let showForm = false;
+
   let editingId = null;
 
-  container.innerHTML = `
-    <div
-      class="flex justify-between items-center mb-4"
-    >
-      <div
-        class="text-sm text-muted"
-        id="em-count"
-      >
-        Loading…
+  let showForm = false;
+
+
+  async function loadRows() {
+
+    container.innerHTML = `
+      <div class="empty-state">
+        Loading ${esc(config.title)}s…
       </div>
-
-      <button
-        id="em-toggle"
-        class="btn btn-primary btn-sm"
-        type="button"
-      >
-        + Add ${config.title}
-      </button>
-    </div>
-
-    <div id="em-error"></div>
-
-    <div id="em-form"></div>
-
-    <div id="em-table"></div>
-  `;
-
-  const countEl =
-    container.querySelector(
-      "#em-count"
-    );
-
-  const toggleBtn =
-    container.querySelector(
-      "#em-toggle"
-    );
-
-  const errorEl =
-    container.querySelector(
-      "#em-error"
-    );
-
-  const formEl =
-    container.querySelector(
-      "#em-form"
-    );
-
-  const tableEl =
-    container.querySelector(
-      "#em-table"
-    );
-
-  function showError(
-    message
-  ) {
-    showErrorElement(
-      errorEl,
-      message
-    );
-  }
-
-  function renderForm() {
-    if (!showForm) {
-      formEl.innerHTML = "";
-
-      toggleBtn.textContent =
-        `+ Add ${config.title}`;
-
-      return;
-    }
-
-    toggleBtn.textContent =
-      "Cancel";
-
-    const editingRow =
-      editingId
-        ? rows.find(
-            (row) =>
-              String(row.id) ===
-              String(editingId)
-          )
-        : null;
-
-    formEl.innerHTML = `
-      <form
-        id="em-entity-form"
-        class="admin-panel-box"
-      >
-        <h3 class="h3 mb-3">
-          ${
-            editingId
-              ? "Edit"
-              : "New"
-          }
-          ${config.title}
-        </h3>
-
-        <div class="grid grid-2">
-          ${config.fields
-            .map(
-              (field) => `
-                <div
-                  class="field"
-                  style="${
-                    field.type ===
-                    "textarea"
-                      ? "grid-column:1/-1;"
-                      : ""
-                  }"
-                >
-                  <label>
-                    ${field.label}
-                  </label>
-
-                  ${fieldInputHtml(
-                    field,
-                    editingRow
-                      ? editingRow[
-                          field.key
-                        ]
-                      : undefined
-                  )}
-                </div>
-              `
-            )
-            .join("")}
-        </div>
-
-        <button
-          type="submit"
-          class="btn btn-primary mt-2"
-        >
-          ${
-            editingId
-              ? "Save Changes"
-              : "Create"
-          }
-        </button>
-      </form>
     `;
 
-    const form =
-      formEl.querySelector(
-        "#em-entity-form"
-      );
 
-    form.addEventListener(
-      "submit",
-      async (event) => {
-        event.preventDefault();
+    try {
 
-        const payload = {};
-
-        config.fields.forEach(
-          (field) => {
-            const input =
-              form.querySelector(
-                `[data-field="${field.key}"]`
-              );
-
-            if (!input) return;
-
-            if (
-              field.type ===
-              "checkbox"
-            ) {
-              payload[field.key] =
-                input.checked;
-            } else if (
-              field.type ===
-              "tags"
-            ) {
-              payload[field.key] =
-                input.value
-                  .split(",")
-                  .map(
-                    (item) =>
-                      item.trim()
-                  )
-                  .filter(Boolean);
-            } else if (
-              field.type ===
-              "number"
-            ) {
-              payload[field.key] =
-                Number(
-                  input.value || 0
-                );
-            } else {
-              payload[field.key] =
-                input.value.trim();
-            }
-          }
+      rows =
+        await Api.get(
+          `${config.apiBase}/admin/all`
         );
 
-        try {
-          if (editingId) {
-            await Api.put(
-              `${config.apiBase}/${editingId}`,
-              payload
-            );
-          } else {
-            await Api.post(
-              config.apiBase,
-              payload
-            );
-          }
 
-          showForm = false;
-          editingId = null;
-
-          showError(null);
-
-          await load();
-        } catch (error) {
-          console.error(
-            "Save error:",
-            error
-          );
-
-          showError(
-            error?.message ||
-              "Unable to save item"
-          );
-        }
+      if (!Array.isArray(rows)) {
+        rows = [];
       }
-    );
-  }
 
-  function renderTable() {
-    if (!rows.length) {
-      tableEl.innerHTML = `
-        <div class="empty-state">
-          <p class="text-sm text-muted">
-            No ${
-              config.title.toLowerCase()
-            }s yet.
-          </p>
+    } catch (error) {
+
+      container.innerHTML = `
+        <div class="form-error">
+          ${esc(
+            error?.message ||
+            `Failed to load ${config.title}s.`
+          )}
         </div>
       `;
 
       return;
+
     }
 
-    tableEl.innerHTML = `
-      <div
-        class="admin-panel-box"
-        style="
-          padding:0;
-          overflow-x:auto;
-        "
-      >
-        <table class="admin-table">
-          <thead>
-            <tr>
-              ${config.columns
-                .map(
-                  (column) =>
-                    `<th>${esc(
-                      column
-                    )}</th>`
-                )
-                .join("")}
 
-              <th
-                style="
-                  text-align:right;
-                "
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
+    render();
 
-          <tbody>
-            ${rows
-              .map(
-                (row) => `
-                  <tr>
-                    ${config.columns
-                      .map(
-                        (column) => {
-                          const value =
-                            row[
-                              column
-                            ];
+  }
 
-                          let display =
-                            "";
 
-                          if (
-                            Array.isArray(
-                              value
-                            )
-                          ) {
-                            display =
-                              value.join(
-                                ", "
-                              );
-                          } else if (
-                            typeof value ===
-                            "boolean"
-                          ) {
-                            display =
-                              value
-                                ? "✓"
-                                : "—";
-                          } else {
-                            display =
-                              esc(
-                                value
-                              );
-                          }
+  function render() {
 
-                          return `
-                            <td>
-                              ${display}
-                            </td>
-                          `;
-                        }
-                      )
-                      .join("")}
+    container.innerHTML = "";
 
-                    <td
-                      style="
-                        text-align:right;
-                        white-space:nowrap;
-                      "
-                    >
-                      <button
-                        class="link-btn link-blue"
-                        data-edit="${esc(
-                          row.id
-                        )}"
-                        type="button"
-                        style="
-                          margin-right:12px;
-                        "
-                      >
-                        Edit
-                      </button>
 
-                      <button
-                        class="link-btn link-red"
-                        data-delete="${esc(
-                          row.id
-                        )}"
-                        type="button"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                `
-              )
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
+    /* =====================================================
+       HEADER
+       ===================================================== */
 
-    tableEl
-      .querySelectorAll(
-        "[data-edit]"
-      )
-      .forEach(
-        (button) => {
-          button.addEventListener(
-            "click",
-            () => {
-              editingId =
-                button.dataset.edit;
+    container.insertAdjacentHTML(
+      "beforeend",
+      `
+        <div class="entity-header">
 
-              showForm = true;
+          <div>
+            <h3>
+              ${esc(config.title)}s
+            </h3>
+          </div>
 
-              renderForm();
+          <button
+            class="btn btn-primary"
+            id="add-entity-btn"
+          >
+            + Add ${esc(config.title)}
+          </button>
 
-              window.scrollTo({
-                top: 0,
-                behavior:
-                  "smooth",
-              });
+        </div>
+      `
+    );
+
+
+    /* =====================================================
+       FORM
+       ===================================================== */
+
+    if (showForm) {
+
+      const editingRecord =
+        editingId
+          ? rows.find(
+              row =>
+                String(row.id) ===
+                String(editingId)
+            )
+          : null;
+
+
+      const form =
+        document.createElement("div");
+
+      form.className =
+        "entity-form-card";
+
+
+      form.innerHTML = `
+
+        <h3>
+          ${
+            editingRecord
+              ? `Edit ${esc(config.title)}`
+              : `Add ${esc(config.title)}`
+          }
+        </h3>
+
+        <div
+          id="entity-form-error"
+          class="form-error hidden mb-4"
+        ></div>
+
+        <div
+          id="entity-form-success"
+          class="form-success hidden mb-4"
+        ></div>
+
+        <div class="form-grid">
+
+          ${config.fields
+            .map(field => {
+
+              const value =
+                editingRecord
+                  ? editingRecord[field.key]
+                  : "";
+
+
+              const full =
+                field.type === "textarea" ||
+                field.type === "file";
+
+
+              return `
+
+                <div
+                  class="form-field ${
+                    full ? "full" : ""
+                  }"
+                >
+
+                  <label>
+                    ${esc(field.label)}
+                    ${
+                      field.required
+                        ? " *"
+                        : ""
+                    }
+                  </label>
+
+                  ${fieldInputHtml(
+                    field,
+                    value,
+                    editingRecord
+                  )}
+
+                </div>
+
+              `;
+
+            })
+            .join("")}
+
+        </div>
+
+        <div class="form-actions">
+
+          <button
+            class="btn btn-primary"
+            id="save-entity-btn"
+          >
+            ${
+              editingRecord
+                ? "Update"
+                : "Create"
             }
-          );
-        }
-      );
+          </button>
 
-    tableEl
-      .querySelectorAll(
-        "[data-delete]"
-      )
-      .forEach(
-        (button) => {
-          button.addEventListener(
-            "click",
-            async () => {
-              if (
-                !confirm(
-                  "Delete this item? This cannot be undone."
-                )
-              ) {
+          <button
+            class="btn btn-secondary"
+            id="cancel-entity-btn"
+          >
+            Cancel
+          </button>
+
+        </div>
+
+      `;
+
+
+      container.appendChild(form);
+
+
+      /* FILE PREVIEW */
+
+      form
+        .querySelectorAll(
+          'input[type="file"]'
+        )
+        .forEach(fileInput => {
+
+          fileInput.addEventListener(
+            "change",
+            function () {
+
+              const key =
+                fileInput.dataset.fileField;
+
+              const file =
+                fileInput.files?.[0];
+
+              const preview =
+                form.querySelector(
+                  `[data-preview-for="${key}"]`
+                );
+
+              if (!file || !preview) {
                 return;
               }
 
-              try {
-                await Api.del(
-                  `${config.apiBase}/${button.dataset.delete}`
-                );
 
-                await load();
-              } catch (error) {
-                console.error(
-                  "Delete error:",
-                  error
-                );
+              const reader =
+                new FileReader();
 
-                showError(
-                  error?.message ||
-                    "Unable to delete item"
-                );
-              }
+
+              reader.onload =
+                function (event) {
+
+                  preview.src =
+                    event.target.result;
+
+                  preview.classList.remove(
+                    "hidden"
+                  );
+
+                };
+
+
+              reader.readAsDataURL(file);
+
             }
           );
+
+        });
+
+
+      /* CANCEL */
+
+      document
+        .getElementById(
+          "cancel-entity-btn"
+        )
+        .addEventListener(
+          "click",
+          function () {
+
+            editingId = null;
+
+            showForm = false;
+
+            render();
+
+          }
+        );
+
+
+      /* SAVE */
+
+      document
+        .getElementById(
+          "save-entity-btn"
+        )
+        .addEventListener(
+          "click",
+          async function () {
+
+            await saveEntity(
+              form,
+              config,
+              editingRecord
+            );
+
+          }
+        );
+
+    }
+
+
+    /* =====================================================
+       ADD BUTTON
+       ===================================================== */
+
+    document
+      .getElementById(
+        "add-entity-btn"
+      )
+      .addEventListener(
+        "click",
+        function () {
+
+          editingId = null;
+
+          showForm = true;
+
+          render();
+
         }
       );
+
+
+    /* =====================================================
+       TABLE
+       ===================================================== */
+
+    const tableWrapper =
+      document.createElement("div");
+
+    tableWrapper.className =
+      "entity-table-wrap";
+
+
+    if (!rows.length) {
+
+      tableWrapper.innerHTML = `
+        <div class="empty-state">
+          No ${esc(config.title.toLowerCase())}s found.
+        </div>
+      `;
+
+      container.appendChild(
+        tableWrapper
+      );
+
+      return;
+
+    }
+
+
+    const table =
+      document.createElement("table");
+
+    table.className =
+      "entity-table";
+
+
+    table.innerHTML = `
+
+      <thead>
+
+        <tr>
+
+          ${config.columns
+            .map(column => {
+
+              return `
+                <th>
+                  ${esc(
+                    column
+                      .replace(
+                        /([A-Z])/g,
+                        " $1"
+                      )
+                      .replace(/^./, c =>
+                        c.toUpperCase()
+                      )
+                  )}
+                </th>
+              `;
+
+            })
+            .join("")}
+
+          <th>
+            Actions
+          </th>
+
+        </tr>
+
+      </thead>
+
+      <tbody>
+
+        ${rows
+          .map(row => {
+
+            return `
+
+              <tr>
+
+                ${config.columns
+                  .map(column => {
+
+                    let value =
+                      row[column];
+
+
+                    if (
+                      column === "featured" ||
+                      column === "published" ||
+                      column === "approved"
+                    ) {
+
+                      value =
+                        value
+                          ? "Yes"
+                          : "No";
+
+                    }
+
+
+                    if (
+                      Array.isArray(value)
+                    ) {
+
+                      value =
+                        value.join(", ");
+
+                    }
+
+
+                    return `
+                      <td>
+                        ${esc(
+                          value ?? ""
+                        )}
+                      </td>
+                    `;
+
+                  })
+                  .join("")}
+
+                <td>
+
+                  <div class="entity-actions">
+
+                    <button
+                      class="edit-btn"
+                      data-edit-id="${esc(
+                        row.id
+                      )}"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      class="delete-btn"
+                      data-delete-id="${esc(
+                        row.id
+                      )}"
+                    >
+                      Delete
+                    </button>
+
+                  </div>
+
+                </td>
+
+              </tr>
+
+            `;
+
+          })
+          .join("")}
+
+      </tbody>
+
+    `;
+
+
+    tableWrapper.appendChild(
+      table
+    );
+
+    container.appendChild(
+      tableWrapper
+    );
+
+
+    /* =====================================================
+       EDIT BUTTONS
+       ===================================================== */
+
+    table
+      .querySelectorAll(
+        "[data-edit-id]"
+      )
+      .forEach(button => {
+
+        button.addEventListener(
+          "click",
+          function () {
+
+            editingId =
+              button.dataset.editId;
+
+            showForm = true;
+
+            render();
+
+            window.scrollTo({
+              top: 0,
+              behavior: "smooth"
+            });
+
+          }
+        );
+
+      });
+
+
+    /* =====================================================
+       DELETE BUTTONS
+       ===================================================== */
+
+    table
+      .querySelectorAll(
+        "[data-delete-id]"
+      )
+      .forEach(button => {
+
+        button.addEventListener(
+          "click",
+          async function () {
+
+            const id =
+              button.dataset.deleteId;
+
+
+            const confirmed =
+              window.confirm(
+                `Delete this ${config.title.toLowerCase()}?`
+              );
+
+
+            if (!confirmed) {
+              return;
+            }
+
+
+            button.disabled = true;
+
+            button.textContent =
+              "Deleting…";
+
+
+            try {
+
+              await Api.del(
+                `${config.apiBase}/${encodeURIComponent(id)}`
+              );
+
+
+              await loadRows();
+
+            } catch (error) {
+
+              alert(
+                error?.message ||
+                "Delete failed."
+              );
+
+              button.disabled = false;
+
+              button.textContent =
+                "Delete";
+
+            }
+
+          }
+        );
+
+      });
+
   }
 
-  async function load() {
-    countEl.textContent =
-      "Loading…";
 
-    try {
-      rows = await Api.get(
-        `${config.apiBase}/admin/all`
-      );
+  await loadRows();
 
-      countEl.textContent =
-        `${rows.length} item${
-          rows.length === 1
-            ? ""
-            : "s"
-        }`;
+}
 
-      renderTable();
-    } catch (error) {
-      console.error(
-        "Load error:",
-        error
-      );
 
-      countEl.textContent =
-        "Unable to load";
+/* =========================================================
+   SAVE ENTITY
+   ========================================================= */
 
-      showError(
-        error?.message ||
-          "Unable to load data"
-      );
-    }
-  }
+async function saveEntity(
+  form,
+  config,
+  editingRecord
+) {
 
-  toggleBtn.addEventListener(
-    "click",
-    () => {
-      showForm = !showForm;
-      editingId = null;
-      renderForm();
-    }
+  const errorBox =
+    form.querySelector(
+      "#entity-form-error"
+    );
+
+  const successBox =
+    form.querySelector(
+      "#entity-form-success"
+    );
+
+  const saveButton =
+    form.querySelector(
+      "#save-entity-btn"
+    );
+
+
+  errorBox.classList.add(
+    "hidden"
   );
 
-  load();
+  successBox.classList.add(
+    "hidden"
+  );
+
+
+  saveButton.disabled = true;
+
+  saveButton.textContent =
+    editingRecord
+      ? "Updating…"
+      : "Creating…";
+
+
+  try {
+
+    /*
+      IMPORTANT:
+      Never send id during CREATE.
+      This prevents:
+      column "id" is an identity column
+    */
+
+    const payload = {};
+
+
+    /* =====================================================
+       NORMAL FIELDS
+       ===================================================== */
+
+    config.fields.forEach(field => {
+
+      if (field.type === "file") {
+        return;
+      }
+
+
+      const element =
+        form.querySelector(
+          `[data-field="${field.key}"]`
+        );
+
+
+      if (!element) {
+        return;
+      }
+
+
+      if (field.type === "checkbox") {
+
+        payload[field.key] =
+          element.checked;
+
+        return;
+
+      }
+
+
+      let value =
+        element.value.trim();
+
+
+      if (field.type === "tags") {
+
+        payload[field.key] =
+          value
+            ? value
+                .split(",")
+                .map(v => v.trim())
+                .filter(Boolean)
+            : [];
+
+      } else if (
+        field.type === "number"
+      ) {
+
+        payload[field.key] =
+          value === ""
+            ? 0
+            : Number(value);
+
+      } else {
+
+        payload[field.key] =
+          value;
+
+      }
+
+    });
+
+
+    /* =====================================================
+       FILE UPLOADS
+       ===================================================== */
+
+    for (
+      const field
+      of config.fields
+    ) {
+
+      if (field.type !== "file") {
+        continue;
+      }
+
+
+      const input =
+        form.querySelector(
+          `[data-file-field="${field.key}"]`
+        );
+
+
+      if (
+        !input ||
+        !input.files ||
+        !input.files[0]
+      ) {
+
+        /*
+          If editing and no new file was
+          selected, keep existing image.
+        */
+
+        if (
+          editingRecord &&
+          editingRecord[field.key]
+        ) {
+
+          payload[field.key] =
+            editingRecord[field.key];
+
+        }
+
+        continue;
+
+      }
+
+
+      const status =
+        form.querySelector(
+          `[data-upload-status="${field.key}"]`
+        );
+
+
+      if (status) {
+
+        status.textContent =
+          "Uploading image…";
+
+      }
+
+
+      let folder =
+        config.apiBase
+          .replace("/", "");
+
+
+      if (
+        field.uploadType === "profile"
+      ) {
+
+        folder += "/profiles";
+
+      } else if (
+        field.uploadType === "cover"
+      ) {
+
+        folder += "/covers";
+
+      } else {
+
+        folder += "/images";
+
+      }
+
+
+      const uploadedUrl =
+        await uploadImage(
+          input.files[0],
+          folder
+        );
+
+
+      payload[field.key] =
+        uploadedUrl;
+
+
+      if (status) {
+
+        status.textContent =
+          "Image uploaded ✓";
+
+      }
+
+    }
+
+
+    /*
+      NEVER add:
+      payload.id = ...
+    */
+
+
+    /* =====================================================
+       UPDATE
+       ===================================================== */
+
+    if (editingRecord) {
+
+      await Api.put(
+        `${config.apiBase}/${encodeURIComponent(
+          editingRecord.id
+        )}`,
+        payload
+      );
+
+
+      successBox.textContent =
+        `${config.title} updated successfully.`;
+
+    }
+
+
+    /* =====================================================
+       CREATE
+       ===================================================== */
+
+    else {
+
+      await Api.post(
+        config.apiBase,
+        payload
+      );
+
+
+      successBox.textContent =
+        `${config.title} created successfully.`;
+
+    }
+
+
+    successBox.classList.remove(
+      "hidden"
+    );
+
+
+    /*
+      Reload current section.
+    */
+
+    setTimeout(
+      function () {
+
+        goToSection(
+          activeSection
+        );
+
+      },
+      500
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Save entity error:",
+      error
+    );
+
+
+    errorBox.textContent =
+      error?.message ||
+      "Something went wrong while saving.";
+
+
+    errorBox.classList.remove(
+      "hidden"
+    );
+
+
+    saveButton.disabled = false;
+
+    saveButton.textContent =
+      editingRecord
+        ? "Update"
+        : "Create";
+
+  }
+
 }
+
+
+/* =========================================================
+   CHALLENGES
+   ========================================================= */
+
+async function renderChallengesPanel(
+  element
+) {
+
+  element.innerHTML = `
+
+    <div class="entity-form-card">
+
+      <h3>
+        CTF Challenges
+      </h3>
+
+      <p>
+        Use the existing CTF management system.
+      </p>
+
+      <button
+        class="btn btn-primary"
+        id="load-challenges-btn"
+      >
+        Load Challenges
+      </button>
+
+    </div>
+
+    <div id="challenges-list"></div>
+
+  `;
+
+
+  document
+    .getElementById(
+      "load-challenges-btn"
+    )
+    .addEventListener(
+      "click",
+      async function () {
+
+        const list =
+          document.getElementById(
+            "challenges-list"
+          );
+
+        list.innerHTML =
+          `<div class="empty-state">
+            Loading…
+          </div>`;
+
+
+        try {
+
+          const data =
+            await Api.get(
+              "/challenges/admin/all"
+            );
+
+
+          if (!Array.isArray(data)) {
+
+            list.innerHTML =
+              `<div class="empty-state">
+                No challenges found.
+              </div>`;
+
+            return;
+
+          }
+
+
+          list.innerHTML = `
+
+            <div class="entity-table-wrap">
+
+              <table class="entity-table">
+
+                <thead>
+
+                  <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Difficulty</th>
+                    <th>Points</th>
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  ${data
+                    .map(challenge => {
+
+                      return `
+                        <tr>
+
+                          <td>
+                            ${esc(
+                              challenge.title
+                            )}
+                          </td>
+
+                          <td>
+                            ${esc(
+                              challenge.category
+                            )}
+                          </td>
+
+                          <td>
+                            ${esc(
+                              challenge.difficulty
+                            )}
+                          </td>
+
+                          <td>
+                            ${esc(
+                              challenge.points
+                            )}
+                          </td>
+
+                        </tr>
+                      `;
+
+                    })
+                    .join("")}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          `;
+
+        } catch (error) {
+
+          list.innerHTML = `
+            <div class="form-error">
+              ${esc(
+                error?.message ||
+                "Failed to load challenges."
+              )}
+            </div>
+          `;
+
+        }
+
+      }
+    );
+
+}
+
 
 /* =========================================================
    JOIN REQUESTS
    ========================================================= */
 
-const JOIN_STATUS_BADGE = {
-  pending:
-    "badge-yellow",
-  approved:
-    "badge-green",
-  rejected:
-    "badge-red",
-};
-
-function renderJoinRequestsPanel(
-  container
+async function renderJoinRequestsPanel(
+  element
 ) {
-  container.innerHTML = `
-    <div id="jr-error"></div>
 
-    <div id="jr-list">
-      <div class="loading-text">
+  element.innerHTML = `
+    <div class="entity-form-card">
+      <h3>Join Requests</h3>
+      <p>
+        Review community membership applications.
+      </p>
+    </div>
+
+    <div id="join-requests-list">
+      <div class="empty-state">
         Loading…
       </div>
     </div>
   `;
 
-  const errorEl =
-    container.querySelector(
-      "#jr-error"
+
+  const list =
+    document.getElementById(
+      "join-requests-list"
     );
 
-  const listEl =
-    container.querySelector(
-      "#jr-list"
-    );
 
-  function showError(
-    message
-  ) {
-    showErrorElement(
-      errorEl,
-      message
-    );
-  }
+  try {
 
-  async function load() {
-    try {
-      const rows =
-        await Api.get(
-          "/join"
-        );
+    const requests =
+      await Api.get(
+        "/join-requests/admin/all"
+      );
 
-      if (!rows.length) {
-        listEl.innerHTML = `
-          <div class="empty-state">
-            <p class="text-sm text-muted">
-              No applications yet.
-            </p>
-          </div>
-        `;
 
-        return;
-      }
+    if (
+      !Array.isArray(requests) ||
+      requests.length === 0
+    ) {
 
-      listEl.innerHTML =
-        rows
-          .map(
-            (row) => `
-              <div
-                class="admin-panel-box"
-              >
-                <div
-                  class="
-                    flex
-                    justify-between
-                    items-start
-                  "
-                  style="gap:16px;"
-                >
-                  <div>
-                    <div
-                      class="
-                        flex
-                        items-center
-                        gap-2
-                        mb-1
-                      "
-                    >
-                      <h4 class="h3">
-                        ${esc(
-                          row.name
-                        )}
-                      </h4>
+      list.innerHTML = `
+        <div class="empty-state">
+          No join requests found.
+        </div>
+      `;
 
-                      <span
-                        class="
-                          badge
-                          ${
-                            JOIN_STATUS_BADGE[
-                              row.status
-                            ] ||
-                            "badge-slate"
-                          }
-                        "
-                      >
-                        ${esc(
-                          row.status
-                        )}
-                      </span>
-                    </div>
+      return;
 
-                    <p
-                      class="
-                        text-sm
-                        text-muted
-                      "
-                    >
+    }
+
+
+    list.innerHTML = `
+
+      <div class="entity-table-wrap">
+
+        <table class="entity-table">
+
+          <thead>
+
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            ${requests
+              .map(request => {
+
+                return `
+
+                  <tr>
+
+                    <td>
                       ${esc(
-                        row.email
+                        request.name
                       )}
-                      ·
-                      @${esc(
-                        row.username
+                    </td>
+
+                    <td>
+                      ${esc(
+                        request.email
                       )}
-                    </p>
+                    </td>
 
-                    ${
-                      row.skills
-                        ? `
-                          <p
-                            class="
-                              text-xs
-                              text-muted
-                              mt-1
-                            "
-                          >
-                            Skills:
-                            ${esc(
-                              row.skills
-                            )}
-                          </p>
-                        `
-                        : ""
-                    }
+                    <td>
+                      ${esc(
+                        request.status
+                      )}
+                    </td>
 
-                    ${
-                      row.message
-                        ? `
-                          <p
-                            class="
-                              text-sm
-                              mt-2
-                            "
-                          >
-                            ${esc(
-                              row.message
-                            )}
-                          </p>
-                        `
-                        : ""
-                    }
-                  </div>
+                    <td>
 
-                  <div
-                    class="
-                      flex
-                      flex-col
-                      gap-2
-                    "
-                    style="
-                      flex-shrink:0;
-                      align-items:flex-end;
-                    "
-                  >
-                    ${
-                      row.status !==
-                      "approved"
-                        ? `
-                          <button
-                            class="btn btn-sm"
-                            style="
-                              background:#16a34a;
-                              color:#fff;
-                            "
-                            data-approve="${esc(
-                              row.id
-                            )}"
-                            type="button"
-                          >
-                            Approve
-                          </button>
-                        `
-                        : ""
-                    }
+                      ${
+                        request.status ===
+                        "pending"
+                          ? `
+                            <div class="entity-actions">
 
-                    ${
-                      row.status !==
-                      "rejected"
-                        ? `
-                          <button
-                            class="btn btn-sm"
-                            style="
-                              background:#fef2f2;
-                              color:#dc2626;
-                            "
-                            data-reject="${esc(
-                              row.id
-                            )}"
-                            type="button"
-                          >
-                            Reject
-                          </button>
-                        `
-                        : ""
-                    }
+                              <button
+                                class="btn btn-success"
+                                data-approve-request="${esc(
+                                  request.id
+                                )}"
+                              >
+                                Approve
+                              </button>
 
-                    <button
-                      class="link-btn"
-                      style="
-                        color:#94a3b8;
-                      "
-                      data-delete="${esc(
-                        row.id
-                      )}"
-                      type="button"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            `
-          )
-          .join("");
+                              <button
+                                class="btn btn-danger"
+                                data-reject-request="${esc(
+                                  request.id
+                                )}"
+                              >
+                                Reject
+                              </button>
 
-      listEl
-        .querySelectorAll(
-          "[data-approve]"
-        )
-        .forEach(
-          (button) => {
-            button.addEventListener(
-              "click",
-              () =>
-                updateStatus(
-                  button.dataset
-                    .approve,
-                  "approved"
-                )
-            );
-          }
-        );
+                            </div>
+                          `
+                          : "-"
+                      }
 
-      listEl
-        .querySelectorAll(
-          "[data-reject]"
-        )
-        .forEach(
-          (button) => {
-            button.addEventListener(
-              "click",
-              () =>
-                updateStatus(
-                  button.dataset
-                    .reject,
-                  "rejected"
-                )
-            );
-          }
-        );
+                    </td>
 
-      listEl
-        .querySelectorAll(
-          "[data-delete]"
-        )
-        .forEach(
-          (button) => {
-            button.addEventListener(
-              "click",
-              async () => {
-                if (
-                  !confirm(
-                    "Delete this application?"
-                  )
-                ) {
-                  return;
+                  </tr>
+
+                `;
+
+              })
+              .join("")}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    `;
+
+
+    list
+      .querySelectorAll(
+        "[data-approve-request]"
+      )
+      .forEach(button => {
+
+        button.addEventListener(
+          "click",
+          async function () {
+
+            const id =
+              button.dataset
+                .approveRequest;
+
+
+            try {
+
+              await Api.put(
+                `/join-requests/${encodeURIComponent(id)}`,
+                {
+                  status: "approved"
                 }
+              );
 
-                try {
-                  await Api.del(
-                    `/join/${button.dataset.delete}`
-                  );
 
-                  await load();
-                } catch (error) {
-                  showError(
-                    error?.message
-                  );
-                }
-              }
-            );
+              renderJoinRequestsPanel(
+                element
+              );
+
+            } catch (error) {
+
+              alert(
+                error?.message ||
+                "Approval failed."
+              );
+
+            }
+
           }
         );
-    } catch (error) {
-      console.error(
-        "Join request load error:",
-        error
-      );
 
-      showError(
-        error?.message ||
-          "Unable to load applications"
-      );
-    }
+      });
+
+
+    list
+      .querySelectorAll(
+        "[data-reject-request]"
+      )
+      .forEach(button => {
+
+        button.addEventListener(
+          "click",
+          async function () {
+
+            const id =
+              button.dataset
+                .rejectRequest;
+
+
+            try {
+
+              await Api.put(
+                `/join-requests/${encodeURIComponent(id)}`,
+                {
+                  status: "rejected"
+                }
+              );
+
+
+              renderJoinRequestsPanel(
+                element
+              );
+
+            } catch (error) {
+
+              alert(
+                error?.message ||
+                "Rejection failed."
+              );
+
+            }
+
+          }
+        );
+
+      });
+
+
+  } catch (error) {
+
+    list.innerHTML = `
+      <div class="form-error">
+        ${esc(
+          error?.message ||
+          "Failed to load join requests."
+        )}
+      </div>
+    `;
+
   }
 
-  async function updateStatus(
-    id,
-    status
-  ) {
-    try {
-      await Api.put(
-        `/join/${id}`,
-        {
-          status,
-        }
-      );
-
-      await load();
-    } catch (error) {
-      showError(
-        error?.message ||
-          "Unable to update application"
-      );
-    }
-  }
-
-  load();
 }
+
 
 /* =========================================================
    MESSAGES
    ========================================================= */
 
-function renderMessagesPanel(
-  container
+async function renderMessagesPanel(
+  element
 ) {
-  container.innerHTML = `
-    <div id="msg-error"></div>
 
-    <div id="msg-list">
-      <div class="loading-text">
-        Loading…
-      </div>
+  element.innerHTML = `
+
+    <div class="entity-form-card">
+
+      <h3>
+        Contact Messages
+      </h3>
+
+      <p>
+        Messages submitted through the website.
+      </p>
+
     </div>
-  `;
 
-  const errorEl =
-    container.querySelector(
-      "#msg-error"
-    );
+    <div id="messages-list">
 
-  const listEl =
-    container.querySelector(
-      "#msg-list"
-    );
-
-  function showError(
-    message
-  ) {
-    showErrorElement(
-      errorEl,
-      message
-    );
-  }
-
-  async function load() {
-    try {
-      const rows =
-        await Api.get(
-          "/contact"
-        );
-
-      if (!rows.length) {
-        listEl.innerHTML = `
-          <div class="empty-state">
-            <p class="text-sm text-muted">
-              No messages yet.
-            </p>
-          </div>
-        `;
-
-        return;
-      }
-
-      listEl.innerHTML =
-        rows
-          .map(
-            (message) => `
-              <div
-                class="admin-panel-box"
-                style="
-                  ${
-                    message.read
-                      ? ""
-                      : "background:#eff6ff; border-color:#bfdbfe;"
-                  }
-                "
-              >
-                <div
-                  class="
-                    flex
-                    justify-between
-                    items-start
-                  "
-                  style="gap:16px;"
-                >
-                  <div>
-                    <div
-                      class="
-                        flex
-                        items-center
-                        gap-2
-                        mb-1
-                      "
-                    >
-                      <h4 class="h3">
-                        ${esc(
-                          message.subject
-                        )}
-                      </h4>
-
-                      ${
-                        !message.read
-                          ? `
-                            <span
-                              class="badge"
-                              style="
-                                background:#1d4ed8;
-                                color:#fff;
-                              "
-                            >
-                              New
-                            </span>
-                          `
-                          : ""
-                      }
-                    </div>
-
-                    <p
-                      class="
-                        text-sm
-                        text-muted
-                      "
-                    >
-                      ${esc(
-                        message.name
-                      )}
-                      ·
-                      ${esc(
-                        message.email
-                      )}
-                    </p>
-
-                    <p
-                      class="
-                        text-sm
-                        mt-2
-                      "
-                    >
-                      ${esc(
-                        message.message
-                      )}
-                    </p>
-                  </div>
-
-                  <div
-                    class="
-                      flex
-                      flex-col
-                      gap-2
-                    "
-                    style="
-                      flex-shrink:0;
-                      align-items:flex-end;
-                    "
-                  >
-                    <button
-                      class="btn btn-sm"
-                      style="
-                        background:#f1f5f9;
-                        color:#475569;
-                      "
-                      data-toggle-read="${esc(
-                        message.id
-                      )}"
-                      data-read="${message.read}"
-                      type="button"
-                    >
-                      ${
-                        message.read
-                          ? "Mark unread"
-                          : "Mark read"
-                      }
-                    </button>
-
-                    <button
-                      class="link-btn"
-                      style="
-                        color:#94a3b8;
-                      "
-                      data-delete="${esc(
-                        message.id
-                      )}"
-                      type="button"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            `
-          )
-          .join("");
-
-      listEl
-        .querySelectorAll(
-          "[data-toggle-read]"
-        )
-        .forEach(
-          (button) => {
-            button.addEventListener(
-              "click",
-              async () => {
-                try {
-                  await Api.put(
-                    `/contact/${button.dataset.toggleRead}`,
-                    {
-                      read:
-                        button.dataset
-                          .read !==
-                        "true",
-                    }
-                  );
-
-                  await load();
-                } catch (error) {
-                  showError(
-                    error?.message
-                  );
-                }
-              }
-            );
-          }
-        );
-
-      listEl
-        .querySelectorAll(
-          "[data-delete]"
-        )
-        .forEach(
-          (button) => {
-            button.addEventListener(
-              "click",
-              async () => {
-                if (
-                  !confirm(
-                    "Delete this message?"
-                  )
-                ) {
-                  return;
-                }
-
-                try {
-                  await Api.del(
-                    `/contact/${button.dataset.delete}`
-                  );
-
-                  await load();
-                } catch (error) {
-                  showError(
-                    error?.message
-                  );
-                }
-              }
-            );
-          }
-        );
-    } catch (error) {
-      console.error(
-        "Message load error:",
-        error
-      );
-
-      showError(
-        error?.message ||
-          "Unable to load messages"
-      );
-    }
-  }
-
-  load();
-}
-
-/* =========================================================
-   CTF CHALLENGES
-   ========================================================= */
-
-function renderChallengesPanel(
-  container
-) {
-  let rows = [];
-  let showForm = false;
-  let editingId = null;
-
-  container.innerHTML = `
-    <div
-      class="
-        flex
-        justify-between
-        items-center
-        mb-4
-      "
-    >
-      <div
-        class="text-sm text-muted"
-        id="ch-count"
-      >
+      <div class="empty-state">
         Loading…
       </div>
 
-      <button
-        id="ch-toggle"
-        class="btn btn-primary btn-sm"
-        type="button"
-      >
-        + Add Challenge
-      </button>
     </div>
 
-    <div id="ch-error"></div>
-
-    <div id="ch-form"></div>
-
-    <div id="ch-table"></div>
   `;
 
-  const countEl =
-    container.querySelector(
-      "#ch-count"
+
+  const list =
+    document.getElementById(
+      "messages-list"
     );
 
-  const toggleBtn =
-    container.querySelector(
-      "#ch-toggle"
-    );
 
-  const errorEl =
-    container.querySelector(
-      "#ch-error"
-    );
+  try {
 
-  const formEl =
-    container.querySelector(
-      "#ch-form"
-    );
-
-  const tableEl =
-    container.querySelector(
-      "#ch-table"
-    );
-
-  function showError(
-    message
-  ) {
-    showErrorElement(
-      errorEl,
-      message
-    );
-  }
-
-  function renderForm() {
-    if (!showForm) {
-      formEl.innerHTML = "";
-
-      toggleBtn.textContent =
-        "+ Add Challenge";
-
-      return;
-    }
-
-    toggleBtn.textContent =
-      "Cancel";
-
-    const row = editingId
-      ? rows.find(
-          (item) =>
-            String(item.id) ===
-            String(editingId)
-        )
-      : null;
-
-    formEl.innerHTML = `
-      <form
-        id="ch-entity-form"
-        class="admin-panel-box"
-      >
-        <h3 class="h3 mb-3">
-          ${
-            editingId
-              ? "Edit"
-              : "New"
-          }
-          Challenge
-        </h3>
-
-        <div class="grid grid-2">
-          <div class="field">
-            <label>
-              Title
-            </label>
-
-            <input
-              data-f="title"
-              value="${esc(
-                row?.title ||
-                  ""
-              )}"
-              required
-            />
-          </div>
-
-          <div class="field">
-            <label>
-              Category
-            </label>
-
-            <input
-              data-f="category"
-              value="${esc(
-                row?.category ||
-                  ""
-              )}"
-              placeholder="Crypto, Web, Forensics, Pwn…"
-            />
-          </div>
-
-          <div
-            class="field"
-            style="
-              grid-column:1/-1;
-            "
-          >
-            <label>
-              Description
-            </label>
-
-            <textarea
-              data-f="description"
-              rows="4"
-            >${esc(
-              row?.description ||
-                ""
-            )}</textarea>
-          </div>
-
-          <div class="field">
-            <label>
-              Difficulty
-            </label>
-
-            <select
-              data-f="difficulty"
-            >
-              ${[
-                "Easy",
-                "Medium",
-                "Hard",
-                "Insane",
-              ]
-                .map(
-                  (difficulty) => `
-                    <option
-                      value="${difficulty}"
-                      ${
-                        row?.difficulty ===
-                        difficulty
-                          ? "selected"
-                          : ""
-                      }
-                    >
-                      ${difficulty}
-                    </option>
-                  `
-                )
-                .join("")}
-            </select>
-          </div>
-
-          <div class="field">
-            <label>
-              Points
-            </label>
-
-            <input
-              data-f="points"
-              type="number"
-              min="1"
-              value="${
-                row?.points ??
-                50
-              }"
-              required
-            />
-          </div>
-
-          <div
-            class="field"
-            style="
-              grid-column:1/-1;
-            "
-          >
-            <label>
-              Flag
-              ${
-                editingId
-                  ? `
-                    <span
-                      style="
-                        color:#94a3b8;
-                        font-weight:400;
-                      "
-                    >
-                      (leave blank to keep current flag)
-                    </span>
-                  `
-                  : ""
-              }
-            </label>
-
-            <input
-              data-f="flag"
-              class="mono"
-              placeholder="flag{...}"
-              ${
-                editingId
-                  ? ""
-                  : "required"
-              }
-            />
-
-            <p
-              class="
-                text-xs
-                text-muted
-                mt-1
-              "
-            >
-              Stored hashed and never shown again.
-            </p>
-          </div>
-
-          <div
-            class="field-check mt-2"
-          >
-            <input
-              type="checkbox"
-              data-f="published"
-              ${
-                row?.published !==
-                false
-                  ? "checked"
-                  : ""
-              }
-            />
-
-            <span class="text-sm">
-              Published
-            </span>
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          class="btn btn-primary mt-2"
-        >
-          ${
-            editingId
-              ? "Save Changes"
-              : "Create"
-          }
-        </button>
-      </form>
-    `;
-
-    formEl
-      .querySelector(
-        "#ch-entity-form"
-      )
-      .addEventListener(
-        "submit",
-        async (event) => {
-          event.preventDefault();
-
-          const get =
-            (key) =>
-              formEl.querySelector(
-                `[data-f="${key}"]`
-              );
-
-          const payload = {
-            title:
-              get("title")
-                .value
-                .trim(),
-
-            category:
-              get("category")
-                .value
-                .trim(),
-
-            description:
-              get("description")
-                .value
-                .trim(),
-
-            difficulty:
-              get("difficulty")
-                .value,
-
-            points:
-              Number(
-                get("points")
-                  .value
-              ),
-
-            published:
-              get("published")
-                .checked,
-          };
-
-          const flag =
-            get("flag")
-              .value
-              .trim();
-
-          if (flag) {
-            payload.flag =
-              flag;
-          }
-
-          try {
-            if (editingId) {
-              await Api.put(
-                `/ctf/challenges/${editingId}`,
-                payload
-              );
-            } else {
-              if (!flag) {
-                showError(
-                  "A flag is required when creating a challenge."
-                );
-
-                return;
-              }
-
-              await Api.post(
-                "/ctf/challenges",
-                payload
-              );
-            }
-
-            showForm = false;
-            editingId = null;
-
-            showError(null);
-
-            await load();
-          } catch (error) {
-            showError(
-              error?.message ||
-                "Unable to save challenge"
-            );
-          }
-        }
+    const messages =
+      await Api.get(
+        "/messages/admin/all"
       );
-  }
 
-  function renderTable() {
-    if (!rows.length) {
-      tableEl.innerHTML = `
+
+    if (
+      !Array.isArray(messages) ||
+      !messages.length
+    ) {
+
+      list.innerHTML = `
         <div class="empty-state">
-          <p class="text-sm text-muted">
-            No challenges yet.
-          </p>
+          No messages found.
         </div>
       `;
 
       return;
+
     }
 
-    tableEl.innerHTML = `
-      <div
-        class="admin-panel-box"
-        style="
-          padding:0;
-          overflow-x:auto;
-        "
-      >
-        <table class="admin-table">
+
+    list.innerHTML = `
+
+      <div class="entity-table-wrap">
+
+        <table class="entity-table">
+
           <thead>
+
             <tr>
-              <th>Title</th>
-              <th>Category</th>
-              <th>Difficulty</th>
-              <th>Points</th>
-              <th>Published</th>
-              <th
-                style="
-                  text-align:right;
-                "
-              >
-                Actions
-              </th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Subject</th>
+              <th>Message</th>
+              <th>Status</th>
             </tr>
+
           </thead>
 
           <tbody>
-            ${rows
-              .map(
-                (row) => `
+
+            ${messages
+              .map(message => {
+
+                return `
+
                   <tr>
+
                     <td>
                       ${esc(
-                        row.title
+                        message.name
                       )}
                     </td>
 
                     <td>
                       ${esc(
-                        row.category
+                        message.email
                       )}
                     </td>
 
                     <td>
                       ${esc(
-                        row.difficulty
+                        message.subject
                       )}
                     </td>
 
                     <td>
-                      ${Number(
-                        row.points ||
-                          0
+                      ${esc(
+                        message.message
                       )}
                     </td>
 
                     <td>
                       ${
-                        row.published !==
-                        false
-                          ? "✓"
-                          : "—"
+                        message.read
+                          ? "Read"
+                          : "Unread"
                       }
                     </td>
 
-                    <td
-                      style="
-                        text-align:right;
-                        white-space:nowrap;
-                      "
-                    >
-                      <button
-                        class="link-btn link-blue"
-                        data-edit="${esc(
-                          row.id
-                        )}"
-                        type="button"
-                        style="
-                          margin-right:12px;
-                        "
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        class="link-btn link-red"
-                        data-delete="${esc(
-                          row.id
-                        )}"
-                        type="button"
-                      >
-                        Delete
-                      </button>
-                    </td>
                   </tr>
-                `
-              )
+
+                `;
+
+              })
               .join("")}
+
           </tbody>
+
         </table>
+
+      </div>
+
+    `;
+
+  } catch (error) {
+
+    list.innerHTML = `
+      <div class="form-error">
+        ${esc(
+          error?.message ||
+          "Failed to load messages."
+        )}
       </div>
     `;
 
-    tableEl
-      .querySelectorAll(
-        "[data-edit]"
-      )
-      .forEach(
-        (button) => {
-          button.addEventListener(
-            "click",
-            () => {
-              editingId =
-                button.dataset.edit;
-
-              showForm = true;
-
-              renderForm();
-            }
-          );
-        }
-      );
-
-    tableEl
-      .querySelectorAll(
-        "[data-delete]"
-      )
-      .forEach(
-        (button) => {
-          button.addEventListener(
-            "click",
-            async () => {
-              if (
-                !confirm(
-                  "Delete this challenge? Its solves and leaderboard points will also be removed."
-                )
-              ) {
-                return;
-              }
-
-              try {
-                await Api.del(
-                  `/ctf/challenges/${button.dataset.delete}`
-                );
-
-                await load();
-              } catch (error) {
-                showError(
-                  error?.message
-                );
-              }
-            }
-          );
-        }
-      );
   }
 
-  async function load() {
-    countEl.textContent =
-      "Loading…";
-
-    try {
-      rows =
-        await Api.get(
-          "/ctf/challenges/admin/all"
-        );
-
-      countEl.textContent =
-        `${rows.length} challenge${
-          rows.length === 1
-            ? ""
-            : "s"
-        }`;
-
-      renderTable();
-    } catch (error) {
-      showError(
-        error?.message ||
-          "Unable to load challenges"
-      );
-    }
-  }
-
-  toggleBtn.addEventListener(
-    "click",
-    () => {
-      showForm = !showForm;
-      editingId = null;
-      renderForm();
-    }
-  );
-
-  load();
 }
+
 
 /* =========================================================
    SETTINGS
    ========================================================= */
 
-function renderSettingsPanel(
-  container
+async function renderSettingsPanel(
+  element
 ) {
-  container.innerHTML = `
-    <div
-      class="admin-panel-box"
-      style="
-        max-width:420px;
-      "
-    >
-      <h3 class="h3 mb-3">
-        Change Admin Password
+
+  element.innerHTML = `
+
+    <div class="entity-form-card">
+
+      <h3>
+        Admin Settings
       </h3>
 
-      <form id="settings-form">
-        <div class="field">
-          <label>
-            Current Password
-          </label>
+      <p>
+        Your admin authentication is handled
+        through Supabase authentication.
+      </p>
 
-          <input
-            type="password"
-            id="s-current"
-            required
-          />
-        </div>
+      <button
+        class="btn btn-primary"
+        id="refresh-session-btn"
+      >
+        Check Session
+      </button>
 
-        <div class="field">
-          <label>
-            New Password
-          </label>
+      <div
+        id="session-result"
+        style="margin-top:15px;"
+      ></div>
 
-          <input
-            type="password"
-            id="s-new"
-            minlength="6"
-            required
-          />
-        </div>
-
-        <div class="field">
-          <label>
-            Confirm New Password
-          </label>
-
-          <input
-            type="password"
-            id="s-confirm"
-            minlength="6"
-            required
-          />
-        </div>
-
-        <p
-          id="settings-error"
-          class="form-error hidden"
-        ></p>
-
-        <p
-          id="settings-success"
-          class="form-success hidden"
-        >
-          Password updated successfully.
-        </p>
-
-        <button
-          type="submit"
-          id="settings-submit"
-          class="btn btn-primary mt-1"
-        >
-          Update Password
-        </button>
-      </form>
     </div>
+
   `;
 
-  const form =
-    container.querySelector(
-      "#settings-form"
+
+  document
+    .getElementById(
+      "refresh-session-btn"
+    )
+    .addEventListener(
+      "click",
+      async function () {
+
+        const result =
+          document.getElementById(
+            "session-result"
+          );
+
+
+        try {
+
+          const supabase =
+            getSupabaseClient();
+
+
+          const {
+            data,
+            error
+          } =
+            await supabase.auth.getSession();
+
+
+          if (error) {
+            throw error;
+          }
+
+
+          if (
+            data?.session
+          ) {
+
+            result.innerHTML = `
+              <div class="form-success">
+                Admin session is active.
+              </div>
+            `;
+
+          } else {
+
+            result.innerHTML = `
+              <div class="form-error">
+                No active admin session.
+              </div>
+            `;
+
+          }
+
+        } catch (error) {
+
+          result.innerHTML = `
+            <div class="form-error">
+              ${esc(
+                error?.message ||
+                "Session check failed."
+              )}
+            </div>
+          `;
+
+        }
+
+      }
     );
 
-  form.addEventListener(
-    "submit",
-    async (event) => {
-      event.preventDefault();
-
-      const error =
-        container.querySelector(
-          "#settings-error"
-        );
-
-      const success =
-        container.querySelector(
-          "#settings-success"
-        );
-
-      const button =
-        container.querySelector(
-          "#settings-submit"
-        );
-
-      error.classList.add(
-        "hidden"
-      );
-
-      success.classList.add(
-        "hidden"
-      );
-
-      const currentPassword =
-        container.querySelector(
-          "#s-current"
-        ).value;
-
-      const newPassword =
-        container.querySelector(
-          "#s-new"
-        ).value;
-
-      const confirmPassword =
-        container.querySelector(
-          "#s-confirm"
-        ).value;
-
-      if (
-        newPassword !==
-        confirmPassword
-      ) {
-        error.textContent =
-          "New password and confirmation do not match.";
-
-        error.classList.remove(
-          "hidden"
-        );
-
-        return;
-      }
-
-      if (
-        newPassword.length <
-        6
-      ) {
-        error.textContent =
-          "New password must be at least 6 characters.";
-
-        error.classList.remove(
-          "hidden"
-        );
-
-        return;
-      }
-
-      button.disabled = true;
-
-      button.textContent =
-        "Saving…";
-
-      try {
-        await Api.post(
-          "/auth/change-password",
-          {
-            currentPassword,
-            newPassword,
-          }
-        );
-
-        success.classList.remove(
-          "hidden"
-        );
-
-        form.reset();
-      } catch (errorObject) {
-        error.textContent =
-          errorObject?.message ||
-          "Failed to change password.";
-
-        error.classList.remove(
-          "hidden"
-        );
-      } finally {
-        button.disabled = false;
-
-        button.textContent =
-          "Update Password";
-      }
-    }
-  );
 }
 
+
 /* =========================================================
-   INIT
+   INITIALIZATION
    ========================================================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  async () => {
-    try {
-      setupLogin();
-      setupLogout();
+(async function initAdmin() {
 
-      if (
-        typeof Api.init ===
-        "function"
-      ) {
-        await Api.init();
-      }
+  try {
 
-      if (Api.isAuthed()) {
-        console.log(
-          "DragonByte Admin API initialized: Authenticated"
-        );
+    if (
+      typeof Api !== "undefined" &&
+      typeof Api.init === "function"
+    ) {
 
-        showAdminShell();
-      } else {
-        console.log(
-          "DragonByte Admin: Not authenticated"
-        );
+      await Api.init();
 
-        showLoginScreen();
-      }
-    } catch (error) {
-      console.error(
-        "DragonByte Admin initialization failed:",
-        error
-      );
+    }
+
+
+    if (
+      typeof Api !== "undefined" &&
+      typeof Api.isAuthed === "function" &&
+      Api.isAuthed()
+    ) {
+
+      showAdminShell();
+
+    } else {
 
       showLoginScreen();
+
     }
+
+  } catch (error) {
+
+    console.error(
+      "DragonByte admin initialization:",
+      error
+    );
+
+    showLoginScreen();
+
   }
-);
+
+})();
